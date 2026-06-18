@@ -117,7 +117,7 @@ pip install moondream einops huggingface_hub
 python -c "
 import torch
 import transformers
-import moondream
+import moondream<
 print('✓ All imports OK')
 print(f'PyTorch {torch.__version__}')
 print(f'Transformers {transformers.__version__}')
