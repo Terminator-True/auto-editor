@@ -245,6 +245,151 @@ python main.py D:\gameplay.mp4 --output F:\special_highlights
 | `llm_scan_interval` | Intervalo de escaneo LLM (seg) | 10-60 | `30` |
 | `remove_silence` | Eliminar silencios del final | `true` / `false` | `false` |
 | `min_clip_gap` | Distancia mínima entre clips (seg) | 10-60 | `30` |
+| `keywords_file` | Ruta a keywords.json | Ruta relativa/absoluta | `./keywords.json` |
+| `hf_token` | Hugging Face token (opcional) | string | `null` |
+
+---
+
+## 🌍 Multi-idioma con Keywords
+
+### El sistema usa `keywords.json` para detectar eventos
+
+Los juegos en español, francés, alemán, etc., ahora se detectan correctamente:
+
+**Antes** (solo inglés hardcoded):
+```
+LLM: "¡Pentakill, equipo ganador!"
+Detector: ❌ No detecta (busca "pentakill" en inglés)
+```
+
+**Ahora** (con keywords configurables):
+```
+LLM: "¡Pentakill, equipo ganador!"
+Detector: ✅ Detecta (busca keywords.json español → "pentakill")
+```
+
+### keywords.json — Estructura
+
+```json
+{
+    "language": "es",
+    "es": {
+        "lol": {
+            "multikill": {
+                "pentakill": ["pentakill", "penta", "cinco asesinatos"],
+                "quadrakill": ["cuadrakill", "quadra", "cuatro asesinatos"],
+                "triple": ["triple", "triplekill"],
+                "double": ["doble", "doublekill"]
+            },
+            "victory": ["victoria", "ganaste", "equipo ganador"],
+            "defeat": ["derrota", "perdiste", "equipo perdedor"],
+            "kill": ["asesinato", "kill", "mataste"],
+            "death": ["muerte", "moriste", "asesinado"],
+            "objective": ["barón", "dragón", "torre"],
+            "clutch": ["clutch play", "jugada épica"]
+        },
+        "valorant": { ... },
+        "generic": { ... }
+    },
+    "en": { ... }
+}
+```
+
+### Usar keywords en config.json
+
+**Setup inicial** (ya viene por defecto):
+```json
+{
+    "language": "es",
+    "keywords_file": "./keywords.json",
+    "game_type": "lol"
+}
+```
+
+**Cambiar a inglés**:
+```json
+{
+    "language": "en",
+    "keywords_file": "./keywords.json",
+    "game_type": "lol"
+}
+```
+
+### Agregar nuevo juego o idioma
+
+Editá `keywords.json` y agregá:
+
+```json
+{
+    "es": {
+        "mi_juego": {
+            "victoria": ["tu palabra en español"],
+            "derrota": ["otra palabra"],
+            "kill": ["asesinato"]
+        }
+    }
+}
+```
+
+Luego en `config.json`:
+```json
+{
+    "game_type": "mi_juego",
+    "language": "es"
+}
+```
+
+---
+
+## 🔑 Hugging Face Token (para mejor performance)
+
+### ¿Por qué agregar un token de HF?
+
+Sin token:
+- ⚠️ Rate limit ~12 descargas/hora
+- ⚠️ Lento en primer run (esperar descarga del modelo)
+- ⚠️ Shared bandwidth con otros usuarios
+
+**Con token gratuito**:
+- ✅ Rate limit ~100 descargas/hora
+- ✅ Caché más rápido
+- ✅ Prioridad en servidores de HF
+- ✅ Acceso a modelos privados (si los tienes)
+
+### Obtener token (5 minutos)
+
+1. Ir a: https://huggingface.co/settings/tokens
+2. Crear token **"Read"** (no necesita write)
+3. Copiar el token
+
+### Configurar token (3 opciones)
+
+**Opción A**: En `config.json` (permanente, fácil)
+```json
+{
+    "hf_token": "hf_abcd1234efgh5678ijkl9012"
+}
+```
+
+**Opción B**: Variable de entorno (seguro, reutilizable)
+```bash
+# Windows PowerShell
+$env:HF_TOKEN = "hf_abcd1234efgh5678ijkl9012"
+
+# Windows CMD
+set HF_TOKEN=hf_abcd1234efgh5678ijkl9012
+```
+
+**Opción C**: Via CLI (temporal)
+```bash
+$env:HF_TOKEN = "hf_..." | python main.py video.mp4
+```
+
+### Precedencia (qué se usa primero)
+
+1. **Variable de entorno** (`HF_TOKEN`) — mayor prioridad
+2. **config.json** (`hf_token`)
+3. **Sin token** — fallback (más lento)
 
 ---
 

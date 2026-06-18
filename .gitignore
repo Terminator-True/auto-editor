@@ -5,3 +5,5 @@
 /env
 /ffmpeg
 /detectors/__pycache__/
+env3.12
+__pycache__/

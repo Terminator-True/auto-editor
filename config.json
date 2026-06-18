@@ -1,16 +1,22 @@
 {
-    "ffmpeg_path": ".\\ffmpeg\\ffmpeg-master-latest-win64-gpl\\bin\\ffmpeg.exe",
-    
+    "ffmpeg_path": ".\\ffmpeg\\bin\\ffmpeg.exe",
     "_comment_paths": "Directorios de trabajo (IMPORTANTE para gestión de discos)",
-    "output_directory": null,
-    "temp_directory": null,
+    "output_directory": "E:\\Videos\\Processed videos",
+    "temp_directory": "E:\\Videos\\temp",
     "_comment_paths_explanation": "null = usa carpeta del video. Ejemplos: 'E:\\highlights', 'D:\\temp'",
     
     "_comment_detection_mode": "Detection modes: 'fast' (templates+audio only), 'hybrid' (fast+LLM validation), 'llm_only' (full LLM analysis)",
     "detection_mode": "hybrid",
     
+    "_comment_language": "Language for keywords and LLM prompts: 'es' for Spanish, 'en' for English",
+    "language": "es",
+    
     "_comment_game": "Game-specific settings - set to 'lol' for League of Legends, 'generic' for other games",
     "game_type": "lol",
+    
+    "_comment_keywords": "Keywords JSON para detección de eventos en múltiples idiomas",
+    "_keywords_note": "El detector LLM comparará respuestas contra estos keywords para clasificar eventos",
+    "keywords_file": "./keywords.json",
     
     "_comment_volume": "Volume detection settings",
     "enable_auto_detection": true,
@@ -36,6 +42,9 @@
     
     "_comment_llm": "LLM Vision settings (requires GPU)",
     "llm_scan_interval": 30,
+    "_comment_hf_token": "Hugging Face token para mejorar rate limits y performance (opcional pero RECOMENDADO)",
+    "_hf_token_explanation": "Obten token gratis en https://huggingface.co/settings/tokens. Mejora: más descargas/min, acceso a modelos privados, mejor soporte. Variable de entorno HF_TOKEN sobrescribe esto.",
+    "hf_token": "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",
     
     "_comment_silence": "Silence removal settings",
     "remove_silence": false,

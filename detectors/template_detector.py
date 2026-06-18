@@ -49,25 +49,52 @@ class TemplateDetector:
         if self.video_resolution:
             return self.video_resolution
         
-        cmd = [
+        # Try multiple ffprobe paths (absolute, relative, system PATH)
+        ffprobe_candidates = [
             self.ffmpeg_path.replace('ffmpeg', 'ffprobe'),
-            '-v', 'error',
-            '-select_streams', 'v:0',
-            '-show_entries', 'stream=width,height',
-            '-of', 'json',
-            str(video_path)
+            self.ffmpeg_path.replace('ffmpeg.exe', 'ffprobe.exe'),
+            Path(self.ffmpeg_path).parent / 'ffprobe.exe',
+            Path(self.ffmpeg_path).parent / 'ffprobe',
+            'ffprobe',
+            'ffprobe.exe'
         ]
         
-        try:
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            data = json.loads(result.stdout)
-            width = data['streams'][0]['width']
-            height = data['streams'][0]['height']
-            self.video_resolution = (width, height)
-            return (width, height)
-        except Exception as e:
-            print(f"[TemplateDetector ERROR] No se pudo obtener resolución: {e}")
-            return None
+        for ffprobe_path in ffprobe_candidates:
+            cmd = [
+                str(ffprobe_path),
+                '-v', 'error',
+                '-select_streams', 'v:0',
+                '-show_entries', 'stream=width,height',
+                '-of', 'json',
+                str(video_path)
+            ]
+            
+            try:
+                result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=5)
+                data = json.loads(result.stdout)
+                width = data['streams'][0]['width']
+                height = data['streams'][0]['height']
+                self.video_resolution = (width, height)
+                print(f"[TemplateDetector] Resolución detectada: {width}x{height}")
+                return (width, height)
+            except FileNotFoundError:
+                continue
+            except subprocess.TimeoutExpired:
+                print(f"[TemplateDetector WARNING] ffprobe timeout en {ffprobe_path}")
+                continue
+            except Exception as e:
+                continue
+        
+        # All attempts failed
+        print("[TemplateDetector ERROR] No se pudo obtener resolución del video")
+        print("[TemplateDetector ERROR] Razones posibles:")
+        print("  1. ffprobe no está en PATH")
+        print("  2. Ruta de ffmpeg incorrecta en config.json")
+        print("  3. El video está corrupto")
+        print("[TemplateDetector ERROR] Soluciones:")
+        print("  - Instala ffmpeg: winget install Gyan.FFmpeg")
+        print("  - O verifica ruta en config.json: ffmpeg_path")
+        return None
     
     def normalize_region(self, region, from_resolution):
         """

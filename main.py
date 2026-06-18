@@ -64,10 +64,20 @@ class HybridVideoProcessor:
         self.template_detector = TemplateDetector(self.ffmpeg_path, temp_dir=self.temp_dir)
         self.vision_llm = None
         
-        # Initialize LLM if needed
+        # Initialize LLM if needed with keywords and HF token
         if self.detection_mode in ['hybrid', 'llm_only']:
-            self.vision_llm = VisionLLMDetector(self.ffmpeg_path, temp_dir=self.temp_dir)
-            self.vision_llm = VisionLLMDetector(self.ffmpeg_path)
+            game_type = self.config.get("game_type", "generic")
+            keywords_file = self.config.get("keywords_file", "./keywords.json")
+            hf_token = self.config.get("hf_token") or os.environ.get("HF_TOKEN")
+            
+            self.vision_llm = VisionLLMDetector(
+                self.ffmpeg_path,
+                temp_dir=self.temp_dir,
+                keywords_file=keywords_file,
+                hf_token=hf_token,
+                config=self.config,
+                game_type=game_type
+            )
         
         print(f"[INFO] Modo de detección: {self.detection_mode}")
     

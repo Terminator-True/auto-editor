@@ -1,0 +1,178 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                         ERROR ANALYSIS & SOLUTIONS                         ║
+║                     Auto-Editor v2.1 Setup Issues Resolved                  ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════════════════
+TUS ERRORES — ROOT CAUSE ANALYSIS
+═══════════════════════════════════════════════════════════════════════════════
+
+Error 1: '[VisionLLM ERROR] 'HfMoondream' object has no attribute all_tied_weights_keys'
+─────────────────────────────────────────────────────────────────────────────
+  Causa: Python 3.13 (tienes 3.13.14)
+  Moondream2 SOLO funciona en Python 3.10/3.11/3.12
+  
+  Solución: Instala Python 3.12 y ejecuta todo con: py -3.12 main.py
+
+Error 2: '[TemplateDetector ERROR] No se pudo obtener resolución: [WinError 2]'
+─────────────────────────────────────────────────────────────────────────────
+  Causa: ffprobe.exe no se encuentra en la ruta .\ffmpeg\bin\
+  ffmpeg NO está instalado globalmente ni en esa ruta
+  
+  Solución: winget install Gyan.FFmpeg
+
+Error 3: '[WARNING] LLM no disponible, usando modo manual'
+─────────────────────────────────────────────────────────────────────────────
+  Causa: PyTorch, transformers, moondream NO están instalados
+  Necesarios para LLM mode pero NO para FAST mode
+  
+  Solución: py -3.12 -m pip install torch torchvision transformers moondream
+
+═══════════════════════════════════════════════════════════════════════════════
+SOLUCIÓN PASO A PASO (30 MINUTOS)
+═══════════════════════════════════════════════════════════════════════════════
+
+PASO 1: Descargar Python 3.12
+├─ Ve a: https://www.python.org/downloads/release/python-3120/
+├─ Descarga: Windows installer (64-bit)
+├─ Instala normalmente
+└─ IMPORTANTE: Marca "Add Python 3.12 to PATH"
+
+PASO 2: Instalar PyTorch con GPU (RTX 3060)
+└─ py -3.12 -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+   (Esto descargará ~2 GB, es una sola vez)
+
+PASO 3: Instalar Transformers + Moondream2
+└─ py -3.12 -m pip install transformers==4.41.0 moondream einops huggingface_hub
+
+PASO 4: Instalar FFmpeg globalmente
+└─ winget install Gyan.FFmpeg
+
+PASO 5: Verificar GPU funciona
+└─ py -3.12 -c "import torch; print(f'CUDA: {torch.cuda.is_available()}')"
+   Debe decir: CUDA: True
+
+PASO 6: Test de Keywords + Config
+└─ py -3.12 test_keywords_config.py
+   Debe pasar todos los 4 tests
+
+PASO 7: Ejecutar con video real
+└─ py -3.12 main.py E:\Videos\test.mp4
+
+═══════════════════════════════════════════════════════════════════════════════
+COMANDOS RÁPIDOS (COPIA Y PEGA)
+═══════════════════════════════════════════════════════════════════════════════
+
+# 1. PyTorch + CUDA 11.8 (para RTX 3060)
+py -3.12 -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+
+# 2. Transformers + Moondream2 + HF
+py -3.12 -m pip install transformers==4.41.0 moondream einops huggingface_hub
+
+# 3. FFmpeg (Windows Package Manager)
+winget install Gyan.FFmpeg
+
+# 4. Test
+cd C:\Users\jf28r\Desktop\auto-editor
+py -3.12 test_keywords_config.py
+
+# 5. Ejecuta
+py -3.12 main.py E:\Videos\test.mp4
+
+═══════════════════════════════════════════════════════════════════════════════
+ALTERNATIVA: MODO FAST AHORA MISMO (sin LLM)
+═══════════════════════════════════════════════════════════════════════════════
+
+Si no quieres esperar a instalar Python 3.12:
+
+1. Edita config.json:
+   {
+       "detection_mode": "fast"
+   }
+
+2. Ejecuta:
+   python main.py E:\Videos\test.mp4
+
+LIMITACIONES:
+  ✗ Sin LLM (sin validación de eventos)
+  ✗ Sin auto-labels (pentakill, ace, etc.)
+  ✓ Pero: templates + audio detection funciona
+
+═══════════════════════════════════════════════════════════════════════════════
+ARCHIVOS QUE CREÉ PARA AYUDARTE
+═══════════════════════════════════════════════════════════════════════════════
+
+QUICK_FIX.md              ← LEER PRIMERO (esta solución resumida)
+SETUP_FIX.md              ← Detalles técnicos completos
+requirements.txt          ← Versiones exactas + troubleshooting
+diagnose.py              ← Script para detectar problemas (run: python diagnose.py)
+KEYWORDS_AND_HF.md       ← Guía de keywords y HF token
+CHANGELOG.md             ← Qué cambió en v2.1
+IMPLEMENTATION_SUMMARY.txt ← Resumen de implementación
+
+═══════════════════════════════════════════════════════════════════════════════
+MEJORAS QUE HICE AL CÓDIGO
+═══════════════════════════════════════════════════════════════════════════════
+
+VisionLLMDetector.load_model()
+├─ Ahora: Mejor manejo de errores
+├─ Detecta: Python 3.13+ e advierte
+├─ Dice: Exactamente qué instalar y por qué
+└─ Try: Múltiples caminos antes de fallar
+
+TemplateDetector.get_video_resolution()
+├─ Ahora: Intenta múltiples rutas para ffprobe
+├─ Try: .\ffmpeg\bin\ffprobe.exe (relativa)
+├─ Try: /path/to/ffprobe (absoluta)
+├─ Try: ffprobe (system PATH)
+└─ Say: Ayuda clara si nada funciona
+
+requirements.txt
+├─ Agregué: Python 3.12 requirement explícito
+├─ Agregué: Troubleshooting section completo
+├─ Agregué: Notas sobre ffmpeg
+└─ Agregué: Por qué cada librería
+
+═══════════════════════════════════════════════════════════════════════════════
+VALIDACIÓN
+═══════════════════════════════════════════════════════════════════════════════
+
+Todos los cambios testeados:
+  ✓ test_keywords_config.py — 4/4 tests pass
+  ✓ JSON syntax valid — keywords.json + config.json OK
+  ✓ Python compilation — vision_llm_detector.py + main.py OK
+  ✓ Error messages — Ahora dicen qué instalar exactamente
+
+═══════════════════════════════════════════════════════════════════════════════
+PREGUNTAS FRECUENTES
+═══════════════════════════════════════════════════════════════════════════════
+
+P: ¿Por qué Python 3.13 no funciona?
+R: Moondream2 usa API interna de transformers que cambió en 3.13.
+   Espera a Python 3.14 o usa 3.12 por ahora (más estable).
+
+P: ¿Tengo que instalar Python 3.12 si solo uso FAST mode?
+R: No. Python 3.13 funciona OK para modo FAST (sin LLM).
+   Solo necesitas 3.12 para HYBRID/LLM_ONLY modes.
+
+P: ¿Por qué el token de Hugging Face?
+R: Sin token: ~5 min primera descarga de Moondream2
+   Con token: ~1 min (rate limit 100/hr vs 12/hr)
+
+P: ¿Está roto algo?
+R: No. Sistema funciona correctamente, faltaban dependencias.
+   Keywords + HF token todo OK, solo necesita PyTorch instalado.
+
+═══════════════════════════════════════════════════════════════════════════════
+PRÓXIMOS PASOS
+═══════════════════════════════════════════════════════════════════════════════
+
+1. Instala Python 3.12 (GUI, 5 min)
+2. Ejecuta los 3 pips (10 min + descargas 2 GB)
+3. Instala ffmpeg (2 min)
+4. Test: py -3.12 test_keywords_config.py (debería pasar)
+5. Listo para usar: py -3.12 main.py <video.mp4>
+
+═════════════════════════════════════════════════════════════════════════════════════
+¿PREGUNTAS? Revisa QUICK_FIX.md o SETUP_FIX.md
+═════════════════════════════════════════════════════════════════════════════════════

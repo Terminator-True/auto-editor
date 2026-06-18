@@ -1,0 +1,97 @@
+{
+    "_comment_language": "Lenguaje principal para detección de eventos - 'es' para español, 'en' para inglés",
+    "language": "es",
+    
+    "_comment_note": "Sistema de keywords multi-idioma para detección de eventos por LLM",
+    "_instructions": "Organiza keywords por idioma, juego y evento. El detector comparará respuestas del LLM contra estas keywords.",
+    
+    "es": {
+        "_comment_lol": "League of Legends - Eventos comunes en español",
+        "lol": {
+            "multikill": {
+                "pentakill": ["pentakill", "penta", "5 kills", "cinco asesinatos", "cinco muertes", "¡pentakill!", "¡pentakill"],
+                "quadrakill": ["cuadrakill", "quadra", "4 kills", "cuatro asesinatos", "cuatro muertes"],
+                "triple": ["triple", "triplekill", "3 kills", "tres asesinatos", "tres muertes"],
+                "double": ["doble", "doublekill", "double", "2 kills", "dos asesinatos", "dos muertes"]
+            },
+            "victory": ["victoria", "ganaste", "¡victoria!", "equipo ganador", "has ganado", "win", "você venceu"],
+            "defeat": ["derrota", "perdiste", "¡derrota!", "equipo perdedor", "has perdido", "loss", "você perdeu"],
+            "kill": ["asesinato", "kill", "mataste", "enemigo muerto", "first blood", "primera sangre", "ace"],
+            "death": ["muerte", "muerte", "moriste", "asesinado", "killed by", "muerto por"],
+            "objective": ["barón", "baron nashor", "dragón", "dragon", "torre", "turret", "inhibidor", "inhibitor"],
+            "clutch": ["clutch", "clutch play", "jugada épica", "ultima hora", "momento épico", "improbable"]
+        },
+        
+        "_comment_valorant": "Valorant - Eventos comunes en español",
+        "valorant": {
+            "multikill": {
+                "ace": ["ace", "as", "5 kills", "equipo barrido", "enemigos eliminados"],
+                "quadrakill": ["cuadrakill", "4 kills", "cuatro asesinatos"],
+                "triple": ["triple", "triplekill", "3 kills", "tres asesinatos"],
+                "double": ["doble", "doublekill", "2 kills", "dos asesinatos"]
+            },
+            "victory": ["victoria", "ronda ganada", "partida ganada", "¡victoria!", "equipo ganador"],
+            "defeat": ["derrota", "ronda perdida", "partida perdida", "¡derrota!", "equipo perdedor"],
+            "kill": ["asesinato", "enemigo abatido", "kill", "primer asesinato"],
+            "death": ["muerte", "fuiste abatido", "asesinado", "muerto"],
+            "spike": ["spike plantado", "spike detonado", "spike armado", "spike planted", "bomba"]
+        },
+        
+        "_comment_generic": "Eventos genéricos (aplica a cualquier juego)",
+        "generic": {
+            "kill": ["asesinato", "kill", "mataste", "enemigo muerto", "enemy killed"],
+            "death": ["muerte", "moriste", "asesinado", "killed", "you died"],
+            "victory": ["victoria", "ganaste", "¡victoria!", "win", "victory"],
+            "defeat": ["derrota", "perdiste", "loss", "defeat"],
+            "exciting": ["épico", "increíble", "wow", "amazing", "awesome", "insane", "brutal"]
+        }
+    },
+    
+    "en": {
+        "_comment_lol": "League of Legends - English keywords",
+        "lol": {
+            "multikill": {
+                "pentakill": ["pentakill", "penta", "5 kills", "five kills"],
+                "quadrakill": ["quadrakill", "quadra", "4 kills", "four kills"],
+                "triple": ["triple", "triplekill", "3 kills", "three kills"],
+                "double": ["double", "doublekill", "2 kills", "two kills"]
+            },
+            "victory": ["victory", "you won", "game won", "winning", "victory"],
+            "defeat": ["defeat", "you lost", "game lost", "losing", "loss"],
+            "kill": ["kill", "you killed", "enemy killed", "first blood", "ace"],
+            "death": ["death", "you died", "killed by", "dead"],
+            "objective": ["baron", "dragon", "tower", "turret", "inhibitor"],
+            "clutch": ["clutch", "clutch play", "epic moment", "outplay"]
+        },
+        
+        "valorant": {
+            "multikill": {
+                "ace": ["ace", "5 kills", "team wiped"],
+                "quadrakill": ["quad", "4 kills"],
+                "triple": ["triple", "3 kills"],
+                "double": ["double", "2 kills"]
+            },
+            "victory": ["victory", "round won", "match won"],
+            "defeat": ["defeat", "round lost", "match lost"],
+            "kill": ["kill", "enemy eliminated"],
+            "death": ["death", "you died"],
+            "spike": ["spike planted", "spike detonated"]
+        },
+        
+        "generic": {
+            "kill": ["kill", "killed", "enemy death"],
+            "death": ["death", "died", "you died"],
+            "victory": ["victory", "won", "win"],
+            "defeat": ["defeat", "lost", "loss"],
+            "exciting": ["epic", "incredible", "amazing", "awesome", "insane"]
+        }
+    },
+    
+    "_comment_how_to_add": "Para agregar un nuevo juego o idioma:",
+    "_examples": [
+        "1. Copia la estructura de 'lol' o 'generic'",
+        "2. Define eventos principales (victory, defeat, kill, multikill, etc.)",
+        "3. Lista keywords que el LLM detectaría (en minúsculas)",
+        "4. Agrupa keywords relacionados bajo categorías (ej: pentakill, quadra, triple en multikill)"
+    ]
+}

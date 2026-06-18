@@ -1,30 +1,241 @@
-# Auto-Editor v2.0 - Hybrid Multi-Modal Detection
+# Auto-Editor v2.0 - Hybrid Multi-Modal Detection + Auto-Template Learning
 # 
-# IMPORTANT: This version uses optional heavy dependencies for LLM vision
+# IMPORTANTE: Python 3.10/3.11/3.12 RECOMENDADO (Moondream2 tiene problemas en 3.13+)
 # 
 # Installation modes:
 # 
-# 1. FAST MODE ONLY (lightweight, ~20 MB):
-#    pip install pillow numpy
+# 1. FAST MODE ONLY (lightweight, ~60 MB):
+#    pip install -r requirements.txt
+#    Features: Template matching, audio detection, silence removal
+#    Limitations: No LLM validation, no auto-template learning
 # 
-# 2. HYBRID/LLM MODE (full AI, ~4 GB):
-#    pip install pillow numpy torch torchvision transformers einops
+# 2. HYBRID/LLM MODE (full AI, ~4 GB) - RECOMMENDED for RTX 3060:
+#    IMPORTANTE: Usa Python 3.10/3.11/3.12
+#    py -3.12 -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+#    py -3.12 -m pip install -r requirements.txt
+#    Features: Everything + LLM validation + auto-template learning
 
-# Core dependencies (always needed)
-pillow>=10.0.0           # Template matching (~10 MB)
+# ============================================================================
+# PYTHON VERSION NOTICE
+# ============================================================================
+# Moondream2 LLM tiene bugs en Python 3.13+ (AttributeError: all_tied_weights_keys)
+# 
+# Si SOLO tienes Python 3.13:
+#   - Modo FAST funciona OK
+#   - Modo HYBRID/LLM_ONLY fallará
+# 
+# Solución: Instala Python 3.12 y ejecuta con:
+#   py -3.12 main.py <video.mp4>
+# 
+# Descarga Python 3.12: https://www.python.org/downloads/release/python-3120/
+
+# ============================================================================
+# CORE DEPENDENCIES (always needed)
+# ============================================================================
+
+pillow>=10.0.0           # Template matching, image processing (~10 MB)
 numpy>=1.24.0            # Numerical operations (~50 MB)
 
-# LLM Vision dependencies (OPTIONAL - only for hybrid/llm_only modes)
-# Uncomment if you want LLM vision capabilities:
+# ============================================================================
+# LLM VISION DEPENDENCIES (OPTIONAL - for hybrid/llm_only modes + learning)
+# ============================================================================
+# 
+# IMPORTANTE: Solo funciona en Python 3.10/3.11/3.12
+# 
+# Uncomment these lines if you want full LLM capabilities:
+#
+# torch>=2.0.0           # PyTorch with CUDA support (~2 GB) - REQUIRES PYTHON 3.12 MAX
+# torchvision>=0.15.0    # Vision utilities (~100 MB)
+# transformers>=4.35.0   # Hugging Face transformers (~500 MB)
+# moondream>=2.0.0       # Moondream2 vision model
+# einops>=0.7.0          # Tensor operations for vision models (~1 MB)
+# huggingface_hub>=0.17  # For HF token authentication (faster downloads)
+
+# ============================================================================
+# INSTALLATION INSTRUCTIONS
+# ============================================================================
+#
+# FOR NVIDIA GPU (RTX 3060, RTX 3070, RTX 4090, etc.):
+# ----------------------------------------------------------------------------
+# Step 0: IMPORTANTE - Instala Python 3.12 si tienes 3.13
+#   https://www.python.org/downloads/release/python-3120/
+#   Luego ejecuta todo con: py -3.12 ...
+#
+# Step 1: Instala core dependencies (funciona en cualquier Python)
+#   pip install pillow numpy
+#
+# Step 2: Instala PyTorch con CUDA 11.8 support (SOLO Python 3.12)
+#   py -3.12 -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+#
+# Step 3: Instala transformer dependencies (SOLO Python 3.12)
+#   py -3.12 -m pip install transformers moondream einops huggingface_hub
+#
+# Step 4: Verifica GPU es detectada
+#   py -3.12 -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
+#
+# FOR CPU ONLY (mucho más lento, no recomendado para LLM):
+# ----------------------------------------------------------------------------
+#   py -3.12 -m pip install torch torchvision
+#   py -3.12 -m pip install transformers moondream einops huggingface_hub
+
+# ============================================================================
+# FFMPEG (REQUIRED - but not in pip)
+# ============================================================================
+# 
+# ffmpeg es REQUERIDO para detección de audio y extracción de frames.
+# No se puede instalar via pip (es un ejecutable nativo).
+#
+# Opción A: Instalarlo globalmente (recomendado)
+#   Windows Package Manager: winget install Gyan.FFmpeg
+#   Chocolatey: choco install ffmpeg
+#   O descargar: https://ffmpeg.org/download.html
+#
+# Opción B: Si lo descargaste manualmente
+#   Descomprime a: auto-editor/ffmpeg/
+#   Estructura esperada: ffmpeg/bin/ffmpeg.exe, ffmpeg/bin/ffprobe.exe
+#
+# Verifica que funciona:
+#   ffmpeg -version
+#   ffprobe -version
+
+# ============================================================================
+# WHAT EACH MODE ENABLES
+# ============================================================================
+#
+# FAST MODE (pillow + numpy only):
+#   ✓ OBS real-time markers (F9/F10/F11)
+#   ✓ Template matching (Victory/Defeat detection)
+#   ✓ Volume peak detection
+#   ✓ Silence removal
+#   ✓ Video compilation
+#   ✗ LLM validation
+#   ✗ Auto-labeling (pentakill, ace, etc.)
+#   ✗ Auto-template learning (learn_templates.py)
+#
+# HYBRID MODE (+ torch + transformers + moondream):
+#   ✓ Everything from Fast Mode
+#   ✓ LLM validation of detected moments
+#   ✓ Auto-labeling with event classification
+#   ✓ Auto-template learning from reference videos
+#   ✓ Multi-game support without manual setup
+#   REQUISITO: Python 3.10/3.11/3.12
+#
+# ============================================================================
+# LEGACY DEPENDENCIES (removed in v2.0)
+# ============================================================================
+#
+# These are NO LONGER needed - we use ffmpeg + PIL + optional LLM instead:
+#
+#   opencv-python         # Replaced by: PIL + ffmpeg
+#   opencv-contrib-python # Replaced by: PIL + ffmpeg
+#   pytesseract           # Replaced by: LLM vision (optional)
+#   librosa               # Replaced by: ffmpeg silencedetect
+#   moviepy               # Replaced by: ffmpeg -c copy
+#   scikit-learn          # Not needed
+#   scipy                 # Not needed
+#   soundfile             # Not needed
+#   soxr                  # Not needed
+#
+# Total size reduction: ~1.5 GB → ~60 MB (core) or ~4 GB (with LLM)
+# Performance improvement: 10x faster (ffmpeg native vs Python libraries)
+#
+# ============================================================================
+# TROUBLESHOOTING
+# ============================================================================
+#
+# Error: "ModuleNotFoundError: No module named 'torch'"
+#   → PyTorch no instalado. Ejecuta: py -3.12 -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+#
+# Error: "'HfMoondream' object has no attribute 'all_tied_weights_keys'"
+#   → Moondream2 no es compatible con tu Python/transformers
+#   → Solución: Usa Python 3.12: py -3.12 main.py <video.mp4>
+#
+# Error: "ffprobe: command not found"
+#   → ffmpeg no está instalado o no en PATH
+#   → Solución: winget install Gyan.FFmpeg (o descarga de ffmpeg.org)
+#
+# GPU no detectada aunque tienes RTX
+#   → CUDA drivers desactualizados o PyTorch instalado sin CUDA
+#   → Verifica: py -3.12 -c "import torch; print(torch.cuda.is_available())"
+#   → Reinstala: py -3.12 -m pip install --upgrade torch torchvision --index-url https://download.pytorch.org/whl/cu118
+# CORE DEPENDENCIES (always needed)
+# ============================================================================
+
+pillow>=10.0.0           # Template matching, image processing (~10 MB)
+numpy>=1.24.0            # Numerical operations (~50 MB)
+
+# ============================================================================
+# LLM VISION DEPENDENCIES (OPTIONAL - for hybrid/llm_only modes + learning)
+# ============================================================================
+# 
+# Uncomment these lines if you want full LLM capabilities:
+#
 # torch>=2.0.0           # PyTorch with CUDA support (~2 GB)
 # torchvision>=0.15.0    # Vision utilities (~100 MB)
 # transformers>=4.35.0   # Hugging Face transformers (~500 MB)
-# einops>=0.7.0          # Tensor operations (~1 MB)
+# einops>=0.7.0          # Tensor operations for vision models (~1 MB)
 
-# To install LLM dependencies with CUDA support (for RTX 3060):
-# pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
-# pip install transformers einops
-
-# Legacy dependencies (removed in v2.0):
-# opencv-python, pytesseract, librosa, moviepy, scikit-learn, scipy
-# These are NO LONGER needed - we use ffmpeg + PIL + optional LLM
+# ============================================================================
+# INSTALLATION INSTRUCTIONS
+# ============================================================================
+#
+# FOR NVIDIA GPU (RTX 3060, RTX 3070, RTX 4090, etc.):
+# ----------------------------------------------------------------------------
+# Step 1: Install core dependencies
+#   pip install pillow numpy
+#
+# Step 2: Install PyTorch with CUDA 11.8 support
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+#
+# Step 3: Install transformer dependencies
+#   pip install transformers einops
+#
+# Step 4: Verify GPU is detected
+#   python -c "import torch; print(f'CUDA available: {torch.cuda.is_available()}')"
+#
+# FOR CPU ONLY (slower, not recommended for LLM):
+# ----------------------------------------------------------------------------
+#   pip install torch torchvision
+#   pip install transformers einops
+#
+# ============================================================================
+# WHAT EACH MODE ENABLES
+# ============================================================================
+#
+# FAST MODE (pillow + numpy only):
+#   ✓ OBS real-time markers (F9/F10/F11)
+#   ✓ Template matching (Victory/Defeat detection)
+#   ✓ Volume peak detection
+#   ✓ Silence removal
+#   ✓ Video compilation
+#   ✗ LLM validation
+#   ✗ Auto-labeling (pentakill, ace, etc.)
+#   ✗ Auto-template learning (learn_templates.py)
+#
+# HYBRID MODE (+ torch + transformers):
+#   ✓ Everything from Fast Mode
+#   ✓ LLM validation of detected moments
+#   ✓ Auto-labeling with event classification
+#   ✓ Auto-template learning from reference videos
+#   ✓ Multi-game support without manual setup
+#
+# ============================================================================
+# LEGACY DEPENDENCIES (removed in v2.0)
+# ============================================================================
+#
+# These are NO LONGER needed - we use ffmpeg + PIL + optional LLM instead:
+#
+#   opencv-python         # Replaced by: PIL + ffmpeg
+#   opencv-contrib-python # Replaced by: PIL + ffmpeg
+#   pytesseract           # Replaced by: LLM vision (optional)
+#   librosa               # Replaced by: ffmpeg silencedetect
+#   moviepy               # Replaced by: ffmpeg -c copy
+#   scikit-learn          # Not needed
+#   scipy                 # Not needed
+#   soundfile             # Not needed
+#   soxr                  # Not needed
+#
+# Total size reduction: ~1.5 GB → ~60 MB (core) or ~4 GB (with LLM)
+# Performance improvement: 10x faster (ffmpeg native vs Python libraries)
+#
+# ============================================================================
