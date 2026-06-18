@@ -44,7 +44,7 @@
     "llm_scan_interval": 30,
     "_comment_hf_token": "Hugging Face token para mejorar rate limits y performance (opcional pero RECOMENDADO)",
     "_hf_token_explanation": "Obten token gratis en https://huggingface.co/settings/tokens. Mejora: más descargas/min, acceso a modelos privados, mejor soporte. Variable de entorno HF_TOKEN sobrescribe esto.",
-    "hf_token": "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",
+    "hf_token": "",
     
     "_comment_silence": "Silence removal settings",
     "remove_silence": false,
