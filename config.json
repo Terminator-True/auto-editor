@@ -1,5 +1,54 @@
 {
-    "keyWords":[
+    "ffmpeg_path": ".\\ffmpeg\\ffmpeg-master-latest-win64-gpl\\bin\\ffmpeg.exe",
+    
+    "_comment_paths": "Directorios de trabajo (IMPORTANTE para gestión de discos)",
+    "output_directory": null,
+    "temp_directory": null,
+    "_comment_paths_explanation": "null = usa carpeta del video. Ejemplos: 'E:\\highlights', 'D:\\temp'",
+    
+    "_comment_detection_mode": "Detection modes: 'fast' (templates+audio only), 'hybrid' (fast+LLM validation), 'llm_only' (full LLM analysis)",
+    "detection_mode": "hybrid",
+    
+    "_comment_game": "Game-specific settings - set to 'lol' for League of Legends, 'generic' for other games",
+    "game_type": "lol",
+    
+    "_comment_volume": "Volume detection settings",
+    "enable_auto_detection": true,
+    "volume_threshold": -20,
+    "min_peak_duration": 2,
+    "auto_clip_duration": 30,
+    
+    "_comment_templates": "Template matching settings (LoL Victory/Defeat screens, etc.)",
+    "enable_template_detection": true,
+    "template_threshold": 75,
+    
+    "_comment_regions": "Template regions in NORMALIZED coordinates (0-1 scale, resolution-agnostic)",
+    "template_regions": {
+        "lol_victory": [0.395, 0.278, 0.208, 0.185],
+        "lol_defeat": [0.395, 0.278, 0.208, 0.185]
+    },
+    "_comment_regions_explanation": "Format: [x_norm, y_norm, width_norm, height_norm] where 0.5 = 50% of screen width/height",
+    "_comment_regions_examples": {
+        "1920x1080": "lol_victory at (760, 300, 400, 200) pixels = [0.395, 0.278, 0.208, 0.185] normalized",
+        "2560x1080": "same normalized coords = (1011, 300, 532, 199) pixels automatically",
+        "3840x2160": "same normalized coords = (1516, 600, 798, 399) pixels automatically"
+    },
+    
+    "_comment_llm": "LLM Vision settings (requires GPU)",
+    "llm_scan_interval": 30,
+    
+    "_comment_silence": "Silence removal settings",
+    "remove_silence": false,
+    "silence_threshold": -40,
+    "min_silence_duration": 2,
+    
+    "_comment_clips": "Clip generation settings",
+    "default_clip_duration": 60,
+    "min_clip_gap": 30,
+    "keep_individual_clips": true,
+    
+    "_comment_legacy": "Legacy keywords (not used in v2.0)",
+    "keyWords": [
         "te han matado...",
         "empezar batalla"
     ]

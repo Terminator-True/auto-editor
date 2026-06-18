@@ -2,4 +2,6 @@
 /gameplay.mp4
 /temp_audio.wav
 /highlights
+/env
 /ffmpeg
+/detectors/__pycache__/
