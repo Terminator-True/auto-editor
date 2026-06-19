@@ -2,18 +2,23 @@ from typing import Optional
 
 
 class VisionLLMWrapper:
-    """Minimal stub for a Vision LLM wrapper used by the pipeline.
+    """Compatibility shim: prefer the real wrapper in event_categorization.llm_wrapper
 
-    This is intentionally a deterministic stub for the first slice: it does not
-    download or run any model. analyze_frame returns a fixed response.
+    This file historically contained a stub. We keep a minimal compatibility
+    shim so older imports don't break while preferring the new implementation.
     """
 
     def __init__(self):
-        self.ready = True
+        try:
+            from event_categorization.llm_wrapper import VisionLLMWrapper as RealWrapper
+            self._real = RealWrapper()
+        except Exception:
+            self._real = None
 
     def is_available(self) -> bool:
-        return self.ready
+        return self._real is not None
 
     def analyze_frame(self, image_path: str, prompt: str) -> Optional[str]:
-        # deterministic stubbed response for testing and wiring
+        if self._real:
+            return self._real.analyze_frame(image_path, prompt)
         return "NO_OP_STUB"

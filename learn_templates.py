@@ -37,10 +37,24 @@ class TemplateLearner:
         self.vision_llm = None
         
         if mode in ['llm', 'hybrid']:
-            self.vision_llm = VisionLLMDetector(self.ffmpeg_path)
-            if not self.vision_llm.is_available():
-                print("[WARNING] LLM no disponible, usando modo manual")
-                self.mode = 'manual'
+            # Prefer real VisionLLMWrapper which handles lazy loading and env tokens
+            try:
+                from event_categorization.llm_wrapper import VisionLLMWrapper
+                self.vision_llm = VisionLLMWrapper(self.ffmpeg_path, game_type=self.game_type)
+                # Probe availability by attempting to ensure detector exists; do not force heavy downloads here
+                if not self.vision_llm._ensure_detector():
+                    print("[WARNING] LLM no disponible, usando modo manual")
+                    self.mode = 'manual'
+            except Exception:
+                # Fallback to the original detector if wrapper import fails
+                try:
+                    self.vision_llm = VisionLLMDetector(self.ffmpeg_path)
+                    if not self.vision_llm.is_available():
+                        print("[WARNING] LLM no disponible, usando modo manual")
+                        self.mode = 'manual'
+                except Exception:
+                    print("[WARNING] LLM no disponible, usando modo manual")
+                    self.mode = 'manual'
         
         # Game-specific prompts
         self.game_prompts = {
