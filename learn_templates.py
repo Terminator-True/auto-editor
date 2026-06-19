@@ -15,6 +15,13 @@ import json
 import argparse
 from pathlib import Path
 from detectors import TemplateDetector, VisionLLMDetector
+import uuid
+import time
+from datetime import datetime
+from event_categorization import pipeline as ec_pipeline
+from event_categorization import embeddings as ec_embeddings
+from event_categorization import ann_index as ec_ann
+from event_categorization import registry as ec_registry
 
 
 class TemplateLearner:
@@ -267,6 +274,97 @@ class TemplateLearner:
             return region_norm
         else:
             return None
+
+    def _register_event(self, timestamp, template_name, event_type, region_norm):
+        """Register event into registry when --train is enabled"""
+        game = self.game_type
+        # generate event id
+        try:
+            event_id = f"{game}_{event_type}_{int(timestamp)}"
+        except Exception:
+            event_id = str(uuid.uuid4())
+
+        # Ensure thumbnails dir
+        thumb_dir = Path("event_registry") / "thumbnails" / game
+        thumb_dir.mkdir(parents=True, exist_ok=True)
+
+        thumbnail_path = thumb_dir / f"{event_id}.png"
+        # extract frame again for thumbnail (best-effort)
+        try:
+            self.template_detector.extract_frame(self.video_path, timestamp, thumbnail_path)
+            thumb_paths = [str(thumbnail_path)]
+        except Exception:
+            thumb_paths = []
+
+        # Suggested label candidate
+        label_candidate = template_name
+
+        # Fast-path check
+        try:
+            fast = ec_pipeline.fast_path_check(label_candidate)
+        except Exception:
+            fast = None
+
+        if fast:
+            existing_event_id, dist = fast
+            # attach timestamp to existing event
+            try:
+                ec_registry.append_timestamp_to_event(existing_event_id, timestamp, confidence=None)
+            except Exception:
+                pass
+            return {"event_id": existing_event_id, "fast_path": True, "dist": dist}
+
+        # Get description from VisionLLM if available
+        label = label_candidate
+        confidence = 'low'
+        source = 'stub'
+        if self.vision_llm:
+            try:
+                desc = self.vision_llm.analyze_frame(thumbnail_path, f"Describe this event briefly for {game}")
+                if desc:
+                    label = desc
+                    confidence = 'medium'
+                    source = 'vision_llm'
+            except Exception:
+                # fallback keep label_candidate
+                pass
+
+        # Compute embedding
+        embedding_path = None
+        try:
+            emb = ec_embeddings.compute_embedding(label)
+            embedding_path = ec_embeddings.persist_embedding(emb, event_id)
+        except Exception as e:
+            # missing deps or API key - record in registry as null
+            embedding_path = None
+
+        # Add to ANN index
+        try:
+            idx = ec_pipeline.get_global_index(game=game)
+            if embedding_path is not None:
+                idx.add(event_id, emb)
+                idx.save()
+        except Exception:
+            pass
+
+        entry = {
+            "event_id": event_id,
+            "label": label,
+            "game": game,
+            "thumbnails": thumb_paths,
+            "embedding_path": embedding_path,
+            "timestamps": [timestamp],
+            "confidence": confidence,
+            "created_at": datetime.utcnow().isoformat() + "Z",
+            "source": "learn_templates"
+        }
+
+        try:
+            ec_registry.add_event(entry)
+        except Exception:
+            pass
+
+        return {"event_id": event_id, "fast_path": False}
     
     def generate_config_snippet(self, templates):
         """
@@ -346,6 +444,10 @@ class TemplateLearner:
             
             if region:
                 templates[template_name] = list(region)
+                # If training/registration requested, register event
+                if getattr(self, "_do_register", False):
+                    result = self._register_event(selected_timestamp, template_name, event_type, region)
+                    print(f"[INFO] Registro de evento: {result}")
         
         # Generate config snippet
         if templates:
@@ -390,6 +492,8 @@ Examples:
                        help='Modo de detección (default: hybrid)')
     parser.add_argument('--config', default='config.json',
                        help='Archivo de configuración (default: config.json)')
+    parser.add_argument('--train', '--register', action='store_true', dest='train',
+                        help='When set, register detected events into the event registry')
     
     args = parser.parse_args()
     
@@ -399,6 +503,13 @@ Examples:
     
     # Run learner
     learner = TemplateLearner(args.video, args.game, args.mode, args.config)
+    # Respect --train flag
+    if args.train:
+        # Monkey-patch a small attribute for downstream training behavior
+        learner._do_register = True
+    else:
+        learner._do_register = False
+
     learner.learn()
 
 
