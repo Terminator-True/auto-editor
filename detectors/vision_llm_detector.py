@@ -12,7 +12,7 @@ import os
 try:
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
-    from Pillow import Image
+    from PIL import Image
     VISION_LLM_AVAILABLE = True
 except ImportError:
     VISION_LLM_AVAILABLE = False

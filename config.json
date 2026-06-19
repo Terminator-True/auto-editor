@@ -42,6 +42,10 @@
     
     "_comment_llm": "LLM Vision settings (requires GPU)",
     "llm_scan_interval": 30,
+    "sampling_rate_frames": 1,
+    "sampling_mode": "stride",
+    "sampling_stride": 30,
+    "event_registry_path": "./event_registry.json",
     "_comment_hf_token": "Hugging Face token para mejorar rate limits y performance (opcional pero RECOMENDADO)",
     "_hf_token_explanation": "Obten token gratis en https://huggingface.co/settings/tokens. Mejora: más descargas/min, acceso a modelos privados, mejor soporte. Variable de entorno HF_TOKEN sobrescribe esto.",
     "hf_token": "",

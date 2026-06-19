@@ -109,6 +109,10 @@ class TemplateLearner:
         total_frames = int(duration / scan_interval)
         current = 0
         
+        # Allow overriding sampling stride from config or caller
+        cfg_stride = self.config.get('sampling_stride', scan_interval)
+        stride = cfg_stride if isinstance(cfg_stride, (int, float)) else scan_interval
+
         while timestamp < duration:
             current += 1
             print(f"  Analizando frame {current}/{total_frames} (t={timestamp:.1f}s)...", end='\r')
@@ -126,7 +130,7 @@ class TemplateLearner:
                     })
                     print(f"\n  ✓ Posible {event_type} detectado en {timestamp:.1f}s")
             
-            timestamp += scan_interval
+            timestamp += stride
         
         # Cleanup
         if temp_frame.exists():
