@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, development ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: [3.12]
+        include_integration: [0, 1]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install base deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+      - name: Install optional deps for integration
+        if: matrix.include_integration == 1
+        run: |
+          pip install sentence-transformers transformers torch openai
+      - name: Run tests
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          RUN_REAL_INTEGRATION: ${{ matrix.include_integration }}
+        run: |
+          if [ "$RUN_REAL_INTEGRATION" = "1" ]; then
+            py -3.12 -m pytest -q
+          else
+            py -3.12 -m pytest -q -k "not integration"
+          fi

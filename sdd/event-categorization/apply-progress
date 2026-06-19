@@ -18,5 +18,14 @@ Notes:
 Files changed:
 - event_categorization/text_classifier.py — new classifier implementation
 - tests/test_text_classifier.py — unit tests (rule, embedding, llm fallback)
+ - event_categorization/canonical_labels.py — canonical mapping + loader
+ - event_categorization/labels/generic.json — tokens/regexes
+ - event_categorization/labels/lol.json — tokens/regexes
+ - tests/test_canonical_labels.py — unit tests for canonical labels
+ - event_categorization/text_lm_wrapper.py — optional Text-LM wrapper
+ - tests/test_text_lm_wrapper.py — tests for wrapper fallback
+ - event_categorization/embeddings.py — improved backends fallback
+ - tests/test_embeddings_backends.py — tests for embedding backends
+ - tests/test_text_classifier_integration.py — integration-style unit tests
 
 Engram save: sdd/event-categorization/apply-progress

@@ -1,14 +1,18 @@
-Clustering and CLI testing notes
+# Event Categorization Integration Test Setup
 
-- Conservative defaults: min_cluster_size=2, distance_threshold=0.6 to avoid over-merging.
-- HDBSCAN is preferred; if unavailable AgglomerativeClustering (sklearn) is used.
-- For production, install hdbscan and sklearn: pip install hdbscan scikit-learn
-- For process locks, install portalocker: pip install portalocker
+These instructions explain how to run the integration tests for the event-categorization pipeline.
 
-Running tests locally:
+Required environment variables (for real integration):
+- HF_TOKEN — Hugging Face token if you want to enable HF Text-LM wrapper
+- OPENAI_API_KEY — OpenAI API key for embeddings
+- RUN_REAL_INTEGRATION=1 — set to run integration tests
 
-1. Create virtualenv with Python 3.12 and activate it (env3.12 provided in repo).
-2. Install test deps: pip install -r requirements-dev.txt (or at minimum pytest)
-3. Run: py -3.12 -m pytest -q
+Install optional dependencies:
+- pip install -U "sentence-transformers" "transformers" "torch"  # for local embeddings/LM
+- pip install -U openai  # for OpenAI embeddings
 
-If HDBSCAN/portalocker are not installed, code falls back to conservative alternatives. Tests are written to mock embeddings and avoid heavy deps.
+Run tests:
+- py -3.12 -m pytest -q
+- To run only the integration test: RUN_REAL_INTEGRATION=1 py -3.12 -m pytest tests/test_text_classifier_integration.py -q
+
+If dependencies are not installed, the code falls back to deterministic embeddings and the TextLMWrapper will return predictable dummy results.

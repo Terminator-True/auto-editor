@@ -1,0 +1,13 @@
+{
+  "tokens": [
+    "victory",
+    "double kill",
+    "baron",
+    "pentakill",
+    "doublekill"
+  ],
+  "regexes": [
+    "\\b(victory|victories)\\b",
+    "\\b(double kill|doublekill|doble kill)\\b"
+  ]
+}

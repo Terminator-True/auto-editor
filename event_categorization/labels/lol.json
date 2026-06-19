@@ -1,0 +1,12 @@
+{
+  "tokens": [
+    "baron",
+    "dragon",
+    "pentakill",
+    "ace"
+  ],
+  "regexes": [
+    "\\b(baron|dragon|pentakill|ace)\\b",
+    "(?P<label>pentakill):?"
+  ]
+}
