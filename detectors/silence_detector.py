@@ -1,29 +1,25 @@
-"""Shim for legacy detectors.SilenceDetector -> event_categorization.audio.silence_detector.SilenceDetector
+"""Compatibility shim for SilenceDetector (legacy import path)
 
-If canonical implementation is absent, the shim provides a class that raises
-NotImplementedError on operational calls while allowing imports to succeed.
+Delegates to event_categorization.audio.silence_detector if present. If the
+canonical implementation is not found, the shim exposes the class but raises
+NotImplementedError on operational calls so imports succeed.
 """
-from typing import Any
+from __future__ import annotations
 
 try:
-    from event_categorization.audio.silence_detector import SilenceDetector as _CanonicalSilenceDetector
-except Exception:  # pragma: no cover - defensive
-    _CanonicalSilenceDetector = None
+    from event_categorization.audio.silence_detector import SilenceDetector as _Canonical
+except Exception:
+    _Canonical = None
 
 
 class SilenceDetector:
-    """Compatibility shim for SilenceDetector."""
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        if _CanonicalSilenceDetector is not None:
-            self._impl = _CanonicalSilenceDetector(*args, **kwargs)
-        else:
+    def __init__(self, *args, **kwargs):
+        if _Canonical is None:
             self._impl = None
+        else:
+            self._impl = _Canonical(*args, **kwargs)
 
-    def detect_silence(self, *args: Any, **kwargs: Any):
+    def detect_silence(self, *args, **kwargs):
         if self._impl is None:
-            raise NotImplementedError("Canonical SilenceDetector not found: event_categorization.audio.silence_detector.SilenceDetector")
+            raise NotImplementedError("Canonical SilenceDetector not available: event_categorization.audio.silence_detector missing")
         return self._impl.detect_silence(*args, **kwargs)
-
-
-__all__ = ["SilenceDetector"]

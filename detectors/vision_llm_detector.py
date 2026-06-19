@@ -1,47 +1,34 @@
-"""Shim for legacy detectors.VisionLLMDetector -> event_categorization.llm_wrapper.VisionLLMWrapper
+"""Compatibility shim for VisionLLMDetector (legacy import path)
 
-Provides analyze_frame and is_available that delegate to the canonical wrapper
-when present. If canonical is not present, analyze_frame raises NotImplementedError
-and is_available returns False.
+Delegates to event_categorization.llm_wrapper.VisionLLMWrapper when available.
+If the canonical implementation is missing the shim still allows import but
+raises NotImplementedError on operational calls.
 """
-from typing import Any
+from __future__ import annotations
 
 try:
-    from event_categorization.llm_wrapper import VisionLLMWrapper as _CanonicalVisionLLM
-except Exception:  # pragma: no cover - defensive
-    _CanonicalVisionLLM = None
+    from event_categorization.llm_wrapper import VisionLLMWrapper as _CanonicalLLM
+except Exception:
+    _CanonicalLLM = None
 
 
 class VisionLLMDetector:
-    """Compatibility shim exposing analyze_frame and is_available."""
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        if _CanonicalVisionLLM is not None:
-            self._impl = _CanonicalVisionLLM(*args, **kwargs)
-        else:
+    def __init__(self, *args, **kwargs):
+        if _CanonicalLLM is None:
+            # Allow import but delay failure until used
             self._impl = None
+        else:
+            self._impl = _CanonicalLLM(*args, **kwargs)
 
-    def analyze_frame(self, *args: Any, **kwargs: Any):
+    def is_available(self):
         if self._impl is None:
-            raise NotImplementedError("Canonical VisionLLMWrapper not found: event_categorization.llm_wrapper.VisionLLMWrapper")
-        # Delegate to the available method name(s) on the canonical impl
-        if hasattr(self._impl, "analyze_frame"):
-            return self._impl.analyze_frame(*args, **kwargs)
-        if hasattr(self._impl, "analyze"):
-            return self._impl.analyze(*args, **kwargs)
-        raise NotImplementedError("Canonical VisionLLMWrapper missing analyze method")
-
-    @staticmethod
-    def is_available() -> bool:
-        if _CanonicalVisionLLM is None:
             return False
-        # If canonical exposes a classmethod/func to check availability, prefer it.
-        if hasattr(_CanonicalVisionLLM, "is_available"):
-            try:
-                return bool(getattr(_CanonicalVisionLLM, "is_available")())
-            except Exception:
-                return False
-        return True
+        try:
+            return getattr(self._impl, 'is_available', lambda: True)()
+        except Exception:
+            return False
 
-
-__all__ = ["VisionLLMDetector"]
+    def analyze_frame(self, image_path, prompt):
+        if self._impl is None:
+            raise NotImplementedError("VisionLLM canonical implementation missing (event_categorization.llm_wrapper)")
+        return self._impl.analyze_frame(image_path, prompt)

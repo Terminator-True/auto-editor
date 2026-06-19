@@ -1,29 +1,32 @@
-"""Shim CLI for scripts.event_registry_cli delegating to event_categorization.registry.cli
+"""Compatibility CLI shim for event registry review.
 
-This module preserves the entrypoint so `python -m scripts.event_registry_cli --help`
-continues to function. If the canonical CLI is absent, the shim provides a
-minimal --help and exits gracefully.
+This module delegates to event_categorization.registry.cli if present or to
+event_categorization.registry functions. The shim keeps the same module path
+so existing tests and docs can call `python -m scripts.event_registry_cli`.
 """
+from __future__ import annotations
 import sys
 
 try:
-    # Prefer explicit CLI main if available
-    from event_categorization.registry.cli import main as _canonical_main
-except Exception:  # pragma: no cover - defensive
-    _canonical_main = None
+    # Preferred: a CLI entrypoint provided under event_categorization.registry.cli
+    from event_categorization.registry.cli import main as _main
+except Exception:
+    # Fallback: try a minimal wrapper over event_categorization.registry
+    try:
+        from event_categorization import registry as _reg
+
+        def _main(argv=None):
+            print("Event registry CLI shim: no CLI available in event_categorization.registry.\nUse registry.* functions programmatically.")
+            return 0
+    except Exception:
+        def _main(argv=None):
+            print("Event registry CLI not available. Canonical module missing.")
+            return 2
 
 
 def main(argv=None):
-    argv = argv if argv is not None else sys.argv[1:]
-    if _canonical_main is None:
-        # Minimal fallback: support --help
-        if any(a in ("-h", "--help") for a in argv):
-            print("Usage: python -m scripts.event_registry_cli [--help]\n\nThis is a compatibility shim. The canonical CLI (event_categorization.registry.cli) is unavailable.")
-            return 0
-        raise NotImplementedError("Canonical CLI not found: event_categorization.registry.cli")
-    # Delegate to canonical implementation
-    return _canonical_main(argv)
+    return _main(argv)
 
 
-if __name__ == "__main__":
-    raise SystemExit(main())
+if __name__ == '__main__':
+    raise SystemExit(main(sys.argv[1:]))

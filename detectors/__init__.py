@@ -13,3 +13,13 @@ __all__ = [
     "TemplateDetector",
     "VisionLLMDetector",
 ]
+
+# Backwards compatibility: expose module-level imports that older code expects
+try:
+    # some callers do: from detectors.template_detector import TemplateDetector
+    from .template_detector import TemplateDetector as TemplateDetector
+    from .vision_llm_detector import VisionLLMDetector as VisionLLMDetector
+    from .silence_detector import SilenceDetector as SilenceDetector
+except Exception:
+    # imports already defined above; ignore failures to keep import-time safe
+    pass
