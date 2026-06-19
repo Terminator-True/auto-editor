@@ -61,6 +61,45 @@ Habilitar Vision LLM real
   setx EVENT_CATEGORIZATION_USE_REAL 1
   ```
 
+Training / Registering events (--train)
+-------------------------------------
+You can use learn_templates.py to "train" or register events found in a video into the event registry. This is the fast path to build the event database used by the ANN fast-path.
+
+Quick example (Windows PowerShell):
+```ps
+python learn_templates.py "E:\\Videos\\gameplay.mp4" --game lol --mode hybrid --train --sampling-stride 30
+```
+
+What happens when you run --train
+- The learner samples frames (according to sampling_stride) and presents candidate timestamps.
+- After you select a timestamp and the template is created, the pipeline will:
+  - extract and save a thumbnail to ./event_registry/thumbnails/{game}/{event_id}.png
+  - attempt a VisionLLM description (if enabled); otherwise use the template name as a label candidate
+  - compute and persist an embedding (if sentence-transformers or OPENAI_API_KEY available)
+  - check the ANN index via the fast-path; if a close match exists, attach the timestamp to the existing event instead of creating a duplicate
+  - save/append the registry entry in ./event_registry/registry.json (atomic write)
+
+Registry sample (registry.json entry)
+```json
+{
+  "event_id": "lol_victory_1623223345",
+  "label": "victory",
+  "game": "lol",
+  "thumbnails": ["event_registry/thumbnails/lol/lol_victory_1623223345.png"],
+  "embedding_path": "event_registry/embeddings/lol_victory_1623223345.npy",
+  "timestamps": [1623.34],
+  "confidence": "medium",
+  "created_at": "2026-06-19T14:00:00Z",
+  "source": "learn_templates"
+}
+```
+
+Notes and tips
+- Idempotence: repeated --train on the same timestamp should not create duplicates because the fast-path and registry checks prevent obvious duplicates. If you need absolute uniqueness, enable UUID-based event_ids in config.json.
+- If embedding computation fails (missing deps/API key), the entry will be created with embedding_path=null and flagged in the apply-progress logs; you can compute embeddings later and update the registry.
+- To fully enable the VisionLLM analyze path set EVENT_CATEGORIZATION_USE_REAL=1 and provide HF_TOKEN in the environment.
+
+
 Tests
 - Ejecutar la suite de tests:
   ```ps

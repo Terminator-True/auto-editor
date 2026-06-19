@@ -90,7 +90,7 @@ class TemplateLearner:
         """Get video resolution"""
         return self.template_detector.get_video_resolution(self.video_path)
     
-    def scan_for_events(self, event_type, scan_interval=30):
+    def scan_for_events(self, event_type, scan_interval=10):
         """
         Scan video for specific events using LLM
         
@@ -149,7 +149,7 @@ class TemplateLearner:
                         'response': response,
                         'confidence': 'high' if 'yes' in response.lower()[:10] else 'medium'
                     })
-                    print(f"\n  ✓ Posible {event_type} detectado en {timestamp:.1f}s")
+                    print(f"\n  ✓ Posible {event_type} detectado en {timestamp:.1f}s → {response}")
             
             timestamp += stride
         
@@ -413,9 +413,38 @@ class TemplateLearner:
         
         # Events to detect based on game type
         events = {
-            'lol': ['victory', 'defeat'],
-            'valorant': ['victory', 'ace'],
-            'generic': ['victory', 'defeat']
+            'lol': [
+                    'Victoria',
+                    'Derrota',
+                    'Primera sangre',
+                    'Asesinato',
+                    'Muerte',
+                    'Asistencia',
+                    'Doble asesinato',
+                    'Triple asesinato',
+                    'Cuadra asesinato',
+                    'Pentakill',
+                    'Teamfight',
+                    'Gank',
+                    'Emboscada exitosa',
+                    'Destrucción de torre',
+                    'Destrucción de inhibidor',
+                    'Dragón asegurado',
+                    'Barón Nashor asegurado',
+                    'Heraldo de la Grieta asegurado',
+                    'Robo de objetivo',
+                    'Ace (equipo eliminado)',
+                    'Remontada',
+                    'Escapada',
+                    'Error grave',
+                    'Objetivo robado',
+                    'Empuje dividido',
+                    'Racha de asesinatos',
+                    'Fin de racha',
+                    'Rendición'
+                    ],
+            # 'valorant': ['victory', 'ace'],
+            'generic': ['victory', 'death', 'kill', 'objective', 'round_end']
         }
         
         events_to_detect = events.get(self.game_type, events['generic'])
@@ -426,7 +455,7 @@ class TemplateLearner:
             print(f"{'='*70}")
             
             # Scan for candidates
-            candidates = self.scan_for_events(event_type, scan_interval=20)
+            candidates = self.scan_for_events(event_type, scan_interval=10)
             
             if not candidates:
                 print(f"[WARNING] No se encontraron candidatos para {event_type}")
