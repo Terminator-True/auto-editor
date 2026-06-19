@@ -284,8 +284,9 @@ class TemplateLearner:
         except Exception:
             event_id = str(uuid.uuid4())
 
-        # Ensure thumbnails dir
-        thumb_dir = Path("event_registry") / "thumbnails" / game
+        # Ensure thumbnails dir (respect EVENT_REGISTRY_BASE env var used by registry)
+        base_event_registry = Path(os.environ.get("EVENT_REGISTRY_BASE", "event_registry"))
+        thumb_dir = base_event_registry / "thumbnails" / game
         thumb_dir.mkdir(parents=True, exist_ok=True)
 
         thumbnail_path = thumb_dir / f"{event_id}.png"

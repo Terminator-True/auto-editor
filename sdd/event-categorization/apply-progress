@@ -1,0 +1,22 @@
+
+Slice: text-classifier (slice-PR2)
+
+Summary:
+- Implemented TextClassifier with rule-based matching, embedding similarity fallback, and optional LLM wrapper integration.
+
+TDD Evidence:
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| Add TextClassifier + tests | tests/test_text_classifier.py | Unit | N/A (new) | ✅ Written | ✅ not-run | ✅ 3 cases | ➖ None needed |
+
+Test commands (local/CI):
+- py -3.12 -m pytest -q tests/test_text_classifier.py
+
+Notes:
+- Tests were added following Strict TDD rules (tests written first). Pytest could not be executed in this environment; marked as not-run. Embedding and LLM dependencies are mocked in tests.
+
+Files changed:
+- event_categorization/text_classifier.py — new classifier implementation
+- tests/test_text_classifier.py — unit tests (rule, embedding, llm fallback)
+
+Engram save: sdd/event-categorization/apply-progress
