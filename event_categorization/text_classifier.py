@@ -74,18 +74,48 @@ class TextClassifier:
                     # skip invalid pattern
                     continue
 
-        # 2) Embedding similarity mapping
+        # 2) LLM via injected model (if provided) - prefer explicit model before embedding lookup
+        try:
+            if self.model is not None and hasattr(self.model, 'classify'):
+                llm_res = self.model.classify(description)
+                if llm_res:
+                    # support list of (label, score)
+                    if isinstance(llm_res, list):
+                        candidates = [( _normalize_label(x[0]), float(x[1])) for x in llm_res]
+                        candidates.sort(key=lambda x: x[1], reverse=True)
+                        top_label, top_score = candidates[0]
+                        return {
+                            'event_label': top_label,
+                            'candidates': candidates,
+                            'confidence': float(top_score),
+                            'reason': 'model'
+                        }
+                    # other shapes handled below
+        except Exception:
+            # model failed - continue
+            pass
+
+        # 3) Embedding similarity mapping
         try:
             emb = embeddings.compute_embedding(description)
             idx = pipeline.get_global_index(game=self.game)
             res = idx.query(emb, top_k=3)
             if res:
-                # res is list of (label, distance)
+                # res is list of (label, distance) or (event_id, distance)
                 candidates = []
                 for lbl, dist in res:
+                    # if ANNIndex stores event_ids, attempt to map to label via registry
+                    try:
+                        from event_categorization import registry as ec_registry
+                        data = ec_registry.load_registry()
+                        # find event by id
+                        ev = next((e for e in data.get('events', []) if e.get('event_id') == lbl), None)
+                        mapped_label = ev.get('label') if ev else lbl
+                    except Exception:
+                        mapped_label = lbl
                     # map dist -> score: simple mapping (1 - dist) clipped
                     score = max(0.0, min(1.0, 1.0 - float(dist)))
-                    candidates.append((_normalize_label(lbl), float(score)))
+                    candidates.append((_normalize_label(mapped_label), float(score)))
                 # pick top
                 candidates.sort(key=lambda x: x[1], reverse=True)
                 top_label, top_score = candidates[0]

@@ -32,7 +32,10 @@ def save_registry(data: dict):
     p = _registry_path()
     # atomic write
     dirp = p.parent
-    fd, tmp = tempfile.mkstemp(dir=dirp)
+    # tempfile.mkstemp historically accepts a string path for dir; ensure we
+    # pass a str to avoid TypeError on some Python/OS combinations when dir
+    # is a pathlib.Path (observed on some Windows setups).
+    fd, tmp = tempfile.mkstemp(dir=str(dirp))
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)

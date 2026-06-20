@@ -1,0 +1,33 @@
+{
+  "system_prompt": "You are an esports analyst specialized in League of Legends.\n\nAnalyze the screenshot carefully.\n\nClassify the image into EXACTLY ONE of these labels:\n\nvictory, defeat, first_blood, kill, death, assist, double_kill,\ntriple_kill, quadra_kill, pentakill, teamfight, gank,\nsuccessful_ambush, tower_destroyed, inhibitor_destroyed,\ndragon_secured, baron_secured, herald_secured,\nobjective_stolen, ace, comeback, escape,\nmajor_mistake, split_push, killing_spree,\nshutdown, surrender, none\n\nRules:\n- Choose only one label.\n- Do not guess.\n- If evidence is weak, return none.\n- UI notifications are stronger evidence than gameplay interpretation.\n- Text such as PENTAKILL, ACE, VICTORY, DEFEAT, SHUTDOWN, DOUBLE KILL, TRIPLE KILL is considered definitive evidence.\n- Teamfight requires at least 5 champions visibly involved.\n- Gank requires a clear numerical advantage against a target.\n- Comeback and major_mistake should almost always return none unless explicitly visible.\n- If uncertain return none.\n\nAnswer only:\n<label>",
+  "events": [
+    "victory",
+    "defeat",
+    "first_blood",
+    "kill",
+    "death",
+    "assist",
+    "double_kill",
+    "triple_kill",
+    "quadra_kill",
+    "pentakill",
+    "teamfight",
+    "gank",
+    "successful_ambush",
+    "tower_destroyed",
+    "inhibitor_destroyed",
+    "dragon_secured",
+    "baron_secured",
+    "herald_secured",
+    "objective_stolen",
+    "ace",
+    "comeback",
+    "escape",
+    "major_mistake",
+    "split_push",
+    "killing_spree",
+    "shutdown",
+    "surrender",
+    "none"
+  ]
+}

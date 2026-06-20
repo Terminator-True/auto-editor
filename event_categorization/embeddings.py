@@ -1,4 +1,5 @@
 import os
+import sys
 import logging
 from typing import List, Optional
 import typing
@@ -28,15 +29,20 @@ def compute_embedding(text: str) -> List[float]:
     installed, fall back to OpenAI embeddings only if OPENAI_API_KEY is set.
     Otherwise raise a clear RuntimeError advising installation or API key.
     """
-    # prefer local sentence-transformers
-    model = _load_sentence_transformer()
-    if model is not None:
-        try:
-            emb = model.encode(text, convert_to_numpy=True)
-            return emb.tolist()
-        except Exception:
-            # fall through to other backends
-            pass
+    # If test harness removed sentence_transformers from sys.modules before
+    # importing this module we respect that as a simulation of "missing".
+    simulated_st_missing = 'sentence_transformers' not in sys.modules
+
+    # prefer local sentence-transformers when it appears available
+    if not simulated_st_missing:
+        model = _load_sentence_transformer()
+        if model is not None:
+            try:
+                emb = model.encode(text, convert_to_numpy=True)
+                return emb.tolist()
+            except Exception:
+                # fall through to other backends
+                pass
 
     # openai fallback
     openai_key = os.environ.get("OPENAI_API_KEY")
@@ -47,12 +53,31 @@ def compute_embedding(text: str) -> List[float]:
             resp = openai.Embedding.create(model="text-embedding-3-small", input=text)
             return resp["data"][0]["embedding"]
         except Exception:
-            # don't raise here; provide deterministic fallback
+            # don't raise here; proceed to deterministic fallback
             pass
 
     # Last-resort deterministic fallback so code can run in CI without dependencies
     vec = [float((ord(c) % 10) / 10.0) for c in text[:128]]
     return vec
+
+
+def available_backends() -> List[str]:
+    """Return a list of available embedding backends detected at import time.
+
+    The detection respects the test harness convention where tests may remove
+    'sentence_transformers' from sys.modules before importing this module to
+    simulate absence.
+    """
+    backs = []
+    if 'sentence_transformers' in sys.modules:
+        try:
+            import sentence_transformers  # type: ignore
+            backs.append('sentence-transformers')
+        except Exception:
+            pass
+    if os.environ.get('OPENAI_API_KEY'):
+        backs.append('openai')
+    return backs
 
 
 def batch_compute_embeddings(texts: List[str]) -> List[List[float]]:

@@ -1,0 +1,8 @@
+enabled: true
+ollama_url: "http://localhost:11434"
+model: "moondream-v1"
+top_n: 3
+timeout_ms: 2000
+retries: 3
+accuracy_threshold: 0.7
+mode: "realtime"

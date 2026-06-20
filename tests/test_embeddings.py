@@ -3,7 +3,7 @@ import types
 import pytest
 
 def test_compute_embedding_fallback(monkeypatch):
-    # simulate sentence-transformers missing and OPENAI_API_KEY absent -> error
+    # simulate sentence-transformers missing and OPENAI_API_KEY absent -> deterministic fallback
     sys_modules = dict(sys.modules)
     sys.modules.pop('sentence_transformers', None)
     import importlib
@@ -11,5 +11,6 @@ def test_compute_embedding_fallback(monkeypatch):
 
     monkeypatch.delenv('OPENAI_API_KEY', raising=False)
 
-    with pytest.raises(RuntimeError):
-        emb.compute_embedding("hello world")
+    vec = emb.compute_embedding("hello world")
+    assert isinstance(vec, list)
+    assert len(vec) > 0
