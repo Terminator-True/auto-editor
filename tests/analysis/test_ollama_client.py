@@ -11,6 +11,9 @@ class DummyResponse:
 
     def json(self):
         return self._json
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise Exception(f"HTTP {self.status_code}")
 
 
 def test_get_labels_parses_response(monkeypatch):

@@ -22,11 +22,12 @@ def test_classifier_maps_and_persists(monkeypatch):
         frame = {"frame_id": "f1", "data": "..."}
         res = clf.classify_frame(frame)
 
-        assert res["top_label"] == "cat"
+        # classifier maps 'cat' -> 'animal' per taxonomy_map
+        assert res["top_label"] == "animal"
         assert res["accuracy"] == 0.8
 
-        # persisted
+        # persisted (should reflect mapped label)
         loaded = store.load_metadata("f1")
-        assert loaded["top_label"] == "cat"
+        assert loaded["top_label"] == "animal"
     finally:
         shutil.rmtree(tmp)
