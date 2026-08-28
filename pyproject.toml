@@ -9,6 +9,7 @@ description = "Standalone read-only orchestrator for DaVinci Resolve automation 
 requires-python = ">=3.9"
 dependencies = [
     "PyYAML>=6.0",
+    "jsonschema>=4",
 ]
 
 [project.optional-dependencies]
@@ -19,6 +20,9 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+davinci_automation = ["schemas/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
