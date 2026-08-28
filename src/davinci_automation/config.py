@@ -47,12 +47,28 @@ class OllamaConfig:
 
 
 @dataclass(frozen=True)
+class PipelineConfig:
+    """E2E pipeline operation settings."""
+
+    mode: str = "marker"
+
+
+@dataclass(frozen=True)
+class TranscriptionConfig:
+    """Transcription source settings for the E2E flow."""
+
+    srt_path: Optional[Path] = None
+
+
+@dataclass(frozen=True)
 class Config:
     """Top-level validated configuration."""
 
     resolve: ResolveConfig = field(default_factory=ResolveConfig)
     log: LogConfig = field(default_factory=LogConfig)
     ollama: OllamaConfig = field(default_factory=OllamaConfig)
+    pipeline: PipelineConfig = field(default_factory=PipelineConfig)
+    transcription: TranscriptionConfig = field(default_factory=TranscriptionConfig)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Config":
@@ -63,15 +79,23 @@ class Config:
         resolve_data = data.get("resolve", {})
         log_data = data.get("log", {})
         ollama_data = data.get("ollama", {})
+        pipeline_data = data.get("pipeline", {})
+        transcription_data = data.get("transcription", {})
         if not isinstance(resolve_data, dict) or not isinstance(log_data, dict):
             raise ConfigError("'resolve' and 'log' sections must be mappings")
         if not isinstance(ollama_data, dict):
             raise ConfigError("'ollama' section must be a mapping")
+        if not isinstance(pipeline_data, dict):
+            raise ConfigError("'pipeline' section must be a mapping")
+        if not isinstance(transcription_data, dict):
+            raise ConfigError("'transcription' section must be a mapping")
 
         return cls(
             resolve=_parse_resolve(resolve_data),
             log=_parse_log(log_data),
             ollama=_parse_ollama(ollama_data),
+            pipeline=_parse_pipeline(pipeline_data),
+            transcription=_parse_transcription(transcription_data),
         )
 
 
@@ -127,6 +151,20 @@ def _parse_ollama(data: Dict[str, Any]) -> OllamaConfig:
         timeout=float(timeout),
         prompt_template=Path(prompt_template),
     )
+
+
+def _parse_pipeline(data: Dict[str, Any]) -> PipelineConfig:
+    mode = data.get("mode", "marker")
+    if not isinstance(mode, str) or mode not in ("marker", "auto"):
+        raise ConfigError("'pipeline.mode' must be 'marker' or 'auto'")
+    return PipelineConfig(mode=mode)
+
+
+def _parse_transcription(data: Dict[str, Any]) -> TranscriptionConfig:
+    srt_path = data.get("srt_path")
+    if srt_path is not None and not isinstance(srt_path, str):
+        raise ConfigError("'transcription.srt_path' must be a string or null")
+    return TranscriptionConfig(srt_path=Path(srt_path) if srt_path else None)
 
 
 def load_config(path: Path | str) -> Config:

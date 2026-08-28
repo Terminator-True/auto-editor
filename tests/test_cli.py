@@ -22,6 +22,7 @@ from davinci_automation.resolve_client import (
     ResolveNotRunning,
     ResolveScriptNotFound,
 )
+from tests.fake_ollama import VALID_LLM_BODY
 from tests.fake_resolve import FakeProject, FakeResolve, make_fake_project
 
 
@@ -255,3 +256,146 @@ def test_probe_ollama_response_error_returns_1(monkeypatch, ollama_cfg_path, eve
 
     assert cli.main(["--probe-ollama", "--config", str(ollama_cfg_path)]) == 1
     assert events()[-1]["event"] == "probe_error"
+
+
+# ---------------------------------------------------------------- --e2e
+
+FIXTURE_SRT = Path(__file__).parent / "fixtures" / "test.srt"
+
+
+class _FakeOllamaE2E:
+    """Drop-in for OllamaClient in the --e2e path.
+
+    ``result`` is an ``OllamaResult`` (or any object exposing ``.response``);
+    the CLI's seam adapter reads ``.response`` to feed the orchestrator's
+    raw-text LLM seam. ``error``, when set, is raised by ``generate``.
+    """
+
+    def __init__(self, result=None, error=None, **kwargs):
+        self.result = result
+        self.error = error
+
+    def generate(self, prompt, system=""):
+        if self.error is not None:
+            raise self.error
+        return self.result
+
+
+def _patch_e2e_ollama(monkeypatch, result=None, error=None) -> None:
+    monkeypatch.setattr(
+        cli,
+        "OllamaClient",
+        lambda **kwargs: _FakeOllamaE2E(result=result, error=error, **kwargs),
+    )
+
+
+def _make_e2e_resolve(duration: int = 2880) -> FakeResolve:
+    return FakeResolve(
+        projects={
+            "TestProject": make_fake_project(
+                "TestProject",
+                timeline_name="Timeline 1",
+                tracks={1: ("video", [("Clip A", 0, 144)])},
+                duration=duration,
+            )
+        }
+    )
+
+
+def _valid_result() -> OllamaResult:
+    return OllamaResult(ok=True, response=VALID_LLM_BODY, latency_s=0.01)
+
+
+def test_e2e_marker_mode_success_returns_0(monkeypatch, cfg_path, events) -> None:
+    resolve = _make_e2e_resolve()
+    _patch_client(monkeypatch, resolve)
+    _patch_e2e_ollama(monkeypatch, result=_valid_result())
+
+    assert (
+        cli.main(
+            ["--e2e", "--mode", "marker", "--srt", str(FIXTURE_SRT), "--config", str(cfg_path)]
+        )
+        == 0
+    )
+
+    timeline = resolve.GetProjectManager().GetCurrentProject().GetCurrentTimeline()
+    assert timeline.markers == [120]
+    assert "apply" in [e["event"] for e in events()]
+
+
+def test_e2e_defaults_to_marker_mode(monkeypatch, cfg_path) -> None:
+    resolve = _make_e2e_resolve()
+    _patch_client(monkeypatch, resolve)
+    _patch_e2e_ollama(monkeypatch, result=_valid_result())
+
+    assert cli.main(["--e2e", "--srt", str(FIXTURE_SRT), "--config", str(cfg_path)]) == 0
+
+    timeline = resolve.GetProjectManager().GetCurrentProject().GetCurrentTimeline()
+    assert timeline.markers == [120]
+
+
+def test_e2e_auto_mode_logs_intended_cut_no_markers(monkeypatch, cfg_path, events) -> None:
+    resolve = _make_e2e_resolve()
+    _patch_client(monkeypatch, resolve)
+    _patch_e2e_ollama(monkeypatch, result=_valid_result())
+
+    assert (
+        cli.main(
+            ["--e2e", "--mode", "auto", "--srt", str(FIXTURE_SRT), "--config", str(cfg_path)]
+        )
+        == 0
+    )
+
+    timeline = resolve.GetProjectManager().GetCurrentProject().GetCurrentTimeline()
+    assert timeline.markers == []
+    assert "intended_cut" in [e["event"] for e in events()]
+
+
+def test_e2e_missing_srt_returns_1(monkeypatch, cfg_path, events) -> None:
+    missing = Path(cfg_path.parent) / "missing.srt"
+
+    assert cli.main(["--e2e", "--srt", str(missing), "--config", str(cfg_path)]) == 1
+    assert events()[-1]["event"] == "error"
+
+
+def test_e2e_no_srt_source_returns_1(monkeypatch, cfg_path, events) -> None:
+    # Neither --srt nor config transcription.srt_path is provided.
+    assert cli.main(["--e2e", "--config", str(cfg_path)]) == 1
+    assert events()[-1]["event"] == "error"
+
+
+def test_e2e_llm_failure_returns_1(monkeypatch, cfg_path, events) -> None:
+    resolve = _make_e2e_resolve()
+    _patch_client(monkeypatch, resolve)
+    _patch_e2e_ollama(monkeypatch, error=OllamaConnectionError("cannot reach Ollama"))
+
+    assert (
+        cli.main(
+            ["--e2e", "--mode", "marker", "--srt", str(FIXTURE_SRT), "--config", str(cfg_path)]
+        )
+        == 1
+    )
+    assert events()[-1]["event"] == "error"
+
+
+def test_e2e_out_of_range_rejected_logged(monkeypatch, cfg_path, events) -> None:
+    resolve = _make_e2e_resolve()
+    _patch_client(monkeypatch, resolve)
+    body = json.dumps(
+        {
+            "segmento": {"inicio": "00:00:01:00", "fin": "00:00:14:00"},
+            "acciones": [
+                {"tipo": "corte", "rango": {"inicio": "00:02:00:00", "fin": "00:02:30:00"},
+                 "motivo": "beyond end"},
+            ],
+        }
+    )
+    _patch_e2e_ollama(monkeypatch, result=OllamaResult(ok=True, response=body, latency_s=0.01))
+
+    assert (
+        cli.main(
+            ["--e2e", "--mode", "marker", "--srt", str(FIXTURE_SRT), "--config", str(cfg_path)]
+        )
+        == 0
+    )
+    assert "range_rejected" in [e["event"] for e in events()]

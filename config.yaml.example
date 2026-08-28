@@ -27,3 +27,14 @@ ollama:
   # Path to the versioned system-role prompt template. Defaults to the
   # package's prompts/system.md; override to point at a custom template.
   prompt_template: prompts/system.md
+
+pipeline:
+  # Operation mode for the --e2e flow: 'marker' (non-destructive default) adds
+  # timeline markers at the suggested points; 'auto' validates decision ranges
+  # and logs intended cuts without mutating the timeline (stubbed per §3.3).
+  mode: marker
+
+transcription:
+  # Path to the .srt transcription source used by --e2e when --srt is omitted.
+  # Leave null to require an explicit --srt flag.
+  srt_path: null
