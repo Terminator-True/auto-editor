@@ -62,11 +62,13 @@ class FakeTrack:
 
 @dataclass
 class FakeTimeline:
-    """A timeline with tracks and a mutation counter."""
+    """A timeline with tracks, a duration, and a marker recorder."""
 
     name: str
     tracks: Dict[int, FakeTrack] = field(default_factory=dict)
     mutations: int = 0
+    duration: int = 0
+    markers: List[int] = field(default_factory=list)
 
     def GetName(self) -> str:
         return self.name
@@ -83,8 +85,13 @@ class FakeTimeline:
             return []
         return list(track.clips)
 
-    def AddMarker(self, *args, **kwargs) -> None:
-        """Read-only guard: records a mutation call without applying it."""
+    def GetEndFrame(self) -> int:
+        """Return the timeline duration in frames (mimics the Resolve API)."""
+        return self.duration
+
+    def AddMarker(self, frame: int, *args, **kwargs) -> None:
+        """Record a marker timestamp and count it as a mutation."""
+        self.markers.append(frame)
         self.mutations += 1
 
 
@@ -149,12 +156,14 @@ def make_fake_project(
     name: str,
     timeline_name: str = "Timeline 1",
     tracks: Optional[Dict[int, Tuple[str, List[Tuple[str, int, int]]]]] = None,
+    duration: int = 0,
 ) -> FakeProject:
     """Build a FakeProject with the given tracks.
 
     ``tracks`` maps track index -> (kind, [(clip_name, start, end), ...]).
+    ``duration`` sets the timeline's duration in frames (``GetEndFrame``).
     """
-    timeline = FakeTimeline(name=timeline_name)
+    timeline = FakeTimeline(name=timeline_name, duration=duration)
     for index, (kind, clips) in (tracks or {}).items():
         timeline.tracks[index] = FakeTrack(
             index=index,
