@@ -5,4 +5,28 @@ Standalone, read-only connection to a running DaVinci Resolve instance via
 clips and tracks, with externalized YAML config and JSON-lines audit logging.
 """
 
+from davinci_automation.llm_schema import (
+    Corte,
+    JsonParseError,
+    LlmOutput,
+    LlmOutputError,
+    MotionGraphic,
+    SchemaValidationError,
+    Segmento,
+    TimecodeError,
+    parse_llm_output,
+)
+
 __version__ = "0.1.0"
+
+__all__ = [
+    "parse_llm_output",
+    "LlmOutput",
+    "Segmento",
+    "Corte",
+    "MotionGraphic",
+    "LlmOutputError",
+    "JsonParseError",
+    "SchemaValidationError",
+    "TimecodeError",
+]

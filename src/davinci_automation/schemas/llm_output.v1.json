@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://davinci-automation.local/schemas/llm_output.v1.json",
+  "title": "LLM cut-decision output (v1)",
+  "description": "Frozen contract from requirements §4 (Contrato de datos). A segmento plus an array of corte / motion_graphic actions.",
+  "type": "object",
+  "required": ["segmento", "acciones"],
+  "additionalProperties": false,
+  "properties": {
+    "segmento": {
+      "type": "object",
+      "required": ["inicio", "fin"],
+      "additionalProperties": false,
+      "properties": {
+        "inicio": { "$ref": "#/definitions/timecode" },
+        "fin": { "$ref": "#/definitions/timecode" }
+      }
+    },
+    "acciones": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          { "$ref": "#/definitions/corte" },
+          { "$ref": "#/definitions/motion_graphic" }
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "timecode": {
+      "type": "string",
+      "pattern": "^\\d{2}:\\d{2}:\\d{2}:\\d{2}$"
+    },
+    "corte": {
+      "type": "object",
+      "required": ["tipo", "rango", "motivo"],
+      "additionalProperties": false,
+      "properties": {
+        "tipo": { "const": "corte" },
+        "rango": {
+          "type": "object",
+          "required": ["inicio", "fin"],
+          "additionalProperties": false,
+          "properties": {
+            "inicio": { "$ref": "#/definitions/timecode" },
+            "fin": { "$ref": "#/definitions/timecode" }
+          }
+        },
+        "motivo": { "type": "string" }
+      }
+    },
+    "motion_graphic": {
+      "type": "object",
+      "required": ["tipo", "timestamp", "template", "parametros", "duracion_frames"],
+      "additionalProperties": false,
+      "properties": {
+        "tipo": { "const": "motion_graphic" },
+        "timestamp": { "$ref": "#/definitions/timecode" },
+        "template": { "type": "string" },
+        "parametros": { "type": "object" },
+        "duracion_frames": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}
