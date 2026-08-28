@@ -12,6 +12,8 @@ from typing import Any, Dict, Optional
 
 import yaml
 
+from davinci_automation.ollama_client import DEFAULT_PROMPT_TEMPLATE
+
 
 class ConfigError(Exception):
     """Raised when the config file is missing, invalid, or malformed."""
@@ -34,11 +36,23 @@ class LogConfig:
 
 
 @dataclass(frozen=True)
+class OllamaConfig:
+    """Local Ollama API connection settings."""
+
+    endpoint: str = "http://localhost:11434"
+    model: str = "qwen2.5:14b"
+    temperature: float = 0.2
+    timeout: float = 120.0
+    prompt_template: Path = DEFAULT_PROMPT_TEMPLATE
+
+
+@dataclass(frozen=True)
 class Config:
     """Top-level validated configuration."""
 
     resolve: ResolveConfig = field(default_factory=ResolveConfig)
     log: LogConfig = field(default_factory=LogConfig)
+    ollama: OllamaConfig = field(default_factory=OllamaConfig)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Config":
@@ -48,12 +62,16 @@ class Config:
 
         resolve_data = data.get("resolve", {})
         log_data = data.get("log", {})
+        ollama_data = data.get("ollama", {})
         if not isinstance(resolve_data, dict) or not isinstance(log_data, dict):
             raise ConfigError("'resolve' and 'log' sections must be mappings")
+        if not isinstance(ollama_data, dict):
+            raise ConfigError("'ollama' section must be a mapping")
 
         return cls(
             resolve=_parse_resolve(resolve_data),
             log=_parse_log(log_data),
+            ollama=_parse_ollama(ollama_data),
         )
 
 
@@ -79,6 +97,36 @@ def _parse_log(data: Dict[str, Any]) -> LogConfig:
         raise ConfigError("'log.level' must be a non-empty string")
 
     return LogConfig(path=Path(path), level=level)
+
+
+def _parse_ollama(data: Dict[str, Any]) -> OllamaConfig:
+    endpoint = data.get("endpoint", "http://localhost:11434")
+    if not isinstance(endpoint, str) or not endpoint:
+        raise ConfigError("'ollama.endpoint' must be a non-empty string")
+
+    model = data.get("model", "qwen2.5:14b")
+    if not isinstance(model, str) or not model:
+        raise ConfigError("'ollama.model' must be a non-empty string")
+
+    temperature = data.get("temperature", 0.2)
+    if isinstance(temperature, bool) or not isinstance(temperature, (int, float)):
+        raise ConfigError("'ollama.temperature' must be a number")
+
+    timeout = data.get("timeout", 120.0)
+    if isinstance(timeout, bool) or not isinstance(timeout, (int, float)):
+        raise ConfigError("'ollama.timeout' must be a number")
+
+    prompt_template = data.get("prompt_template", str(DEFAULT_PROMPT_TEMPLATE))
+    if not isinstance(prompt_template, str) or not prompt_template:
+        raise ConfigError("'ollama.prompt_template' must be a non-empty string")
+
+    return OllamaConfig(
+        endpoint=endpoint,
+        model=model,
+        temperature=float(temperature),
+        timeout=float(timeout),
+        prompt_template=Path(prompt_template),
+    )
 
 
 def load_config(path: Path | str) -> Config:

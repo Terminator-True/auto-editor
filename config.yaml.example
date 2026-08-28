@@ -14,3 +14,16 @@ log:
   path: logs/run.jsonl
   # Default log level for records written to the audit log.
   level: info
+
+ollama:
+  # Local Ollama API endpoint (default http://localhost:11434).
+  endpoint: http://localhost:11434
+  # Model to use for the probe / LLM stage.
+  model: qwen2.5:14b
+  # Sampling temperature passed with each request.
+  temperature: 0.2
+  # Request timeout in seconds before failing with a timeout error.
+  timeout: 120.0
+  # Path to the versioned system-role prompt template. Defaults to the
+  # package's prompts/system.md; override to point at a custom template.
+  prompt_template: prompts/system.md

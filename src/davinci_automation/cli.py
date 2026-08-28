@@ -14,6 +14,7 @@ from typing import List, Optional
 
 from davinci_automation.config import ConfigError, load_config
 from davinci_automation.jsonl_logger import JsonlLogger
+from davinci_automation.ollama_client import OllamaClient, OllamaError
 from davinci_automation.reader import TimelineReader
 from davinci_automation.resolve_client import (
     NoActiveTimeline,
@@ -37,6 +38,11 @@ def _build_parser() -> argparse.ArgumentParser:
         default=str(DEFAULT_CONFIG_PATH),
         help="Path to the YAML config file (default: %(default)s).",
     )
+    parser.add_argument(
+        "--probe-ollama",
+        action="store_true",
+        help="Run a connectivity probe against the local Ollama API and exit.",
+    )
     return parser
 
 
@@ -47,6 +53,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     try:
         config = load_config(args.config)
         logger = JsonlLogger(config.log.path, config.log.level)
+
+        if args.probe_ollama:
+            return _probe_ollama(config, logger)
 
         client = ResolveClient(
             script_path=config.resolve.script_path,
@@ -86,6 +95,36 @@ def main(argv: Optional[List[str]] = None) -> int:
     except NoActiveTimeline as exc:
         _log_fallback_error(logger, "timeline_error", str(exc))
         return 1
+    except OllamaError as exc:
+        _log_fallback_error(logger, "probe_error", str(exc))
+        return 1
+
+
+def _probe_ollama(config, logger: JsonlLogger) -> int:
+    """Run a single non-streaming Ollama probe and log latency + timing."""
+    client = OllamaClient(
+        endpoint=config.ollama.endpoint,
+        model=config.ollama.model,
+        temperature=config.ollama.temperature,
+        timeout=config.ollama.timeout,
+        prompt_template=config.ollama.prompt_template,
+    )
+
+    logger.write(
+        "probe_start",
+        "info",
+        endpoint=config.ollama.endpoint,
+        model=config.ollama.model,
+    )
+    result = client.probe()
+    logger.write(
+        "probe_success",
+        "info",
+        response=result.response,
+        latency_s=result.latency_s,
+        **result.ollama,
+    )
+    return 0
 
 
 def _emit_listing(logger: JsonlLogger, result) -> None:
