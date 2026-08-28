@@ -8,6 +8,14 @@ from pathlib import Path
 import pytest
 
 from davinci_automation import cli
+from davinci_automation.ollama_client import (
+    OllamaConnectionError,
+    OllamaModelNotFoundError,
+    OllamaResponseError,
+    OllamaResult,
+    OllamaTemplateError,
+    OllamaTimeoutError,
+)
 from davinci_automation.resolve_client import (
     NoActiveTimeline,
     NoOpenProject,
@@ -153,3 +161,97 @@ def test_detect_version_false_skips_version_event(monkeypatch, tmp_path: Path, f
     assert cli.main(["--config", str(cfg)]) == 0
     records = [json.loads(line) for line in log_path.read_text(encoding="utf-8").splitlines()]
     assert all(r["event"] != "version" for r in records)
+
+
+# ------------------------------------------------------------ --probe-ollama
+
+class FakeOllamaClient:
+    """Drops-in for OllamaClient so the CLI probe runs offline."""
+
+    def __init__(self, result=None, error=None, **kwargs):
+        self.result = result
+        self.error = error
+        self.kwargs = kwargs
+
+    def probe(self):
+        if self.error is not None:
+            raise self.error
+        return self.result
+
+
+@pytest.fixture
+def ollama_cfg_path(tmp_path: Path) -> Path:
+    log_path = tmp_path / "run.jsonl"
+    path = tmp_path / "config.yaml"
+    path.write_text(
+        f"log:\n  path: {log_path}\n  level: info\n"
+        f"ollama:\n  endpoint: http://localhost:11434\n  model: qwen2.5:14b\n"
+        f"  temperature: 0.2\n  timeout: 5.0\n  prompt_template: {tmp_path}/system.md\n",
+        encoding="utf-8",
+    )
+    return path
+
+
+def _patch_ollama(monkeypatch, result=None, error=None) -> None:
+    monkeypatch.setattr(
+        cli,
+        "OllamaClient",
+        lambda **kwargs: FakeOllamaClient(result=result, error=error, **kwargs),
+    )
+
+
+def test_probe_ollama_success_returns_0(monkeypatch, ollama_cfg_path, events) -> None:
+    _patch_ollama(
+        monkeypatch,
+        result=OllamaResult(
+            ok=True,
+            response="ok",
+            latency_s=0.012,
+            ollama={"total_duration_ns": 1500000000, "eval_count": 3},
+        ),
+    )
+
+    assert cli.main(["--probe-ollama", "--config", str(ollama_cfg_path)]) == 0
+
+    names = [e["event"] for e in events()]
+    assert names == ["probe_start", "probe_success"]
+    success = events()[1]["result"]
+    assert success["response"] == "ok"
+    assert success["latency_s"] == 0.012
+    assert success["total_duration_ns"] == 1500000000
+
+
+def test_probe_ollama_connection_error_returns_1(monkeypatch, ollama_cfg_path, events) -> None:
+    _patch_ollama(monkeypatch, error=OllamaConnectionError("cannot reach Ollama at ..."))
+
+    assert cli.main(["--probe-ollama", "--config", str(ollama_cfg_path)]) == 1
+    assert events()[-1]["event"] == "probe_error"
+    assert "cannot reach" in events()[-1]["result"]["message"]
+
+
+def test_probe_ollama_model_not_found_returns_1(monkeypatch, ollama_cfg_path, events) -> None:
+    _patch_ollama(monkeypatch, error=OllamaModelNotFoundError("model not found"))
+
+    assert cli.main(["--probe-ollama", "--config", str(ollama_cfg_path)]) == 1
+    assert events()[-1]["event"] == "probe_error"
+
+
+def test_probe_ollama_timeout_returns_1(monkeypatch, ollama_cfg_path, events) -> None:
+    _patch_ollama(monkeypatch, error=OllamaTimeoutError("timed out"))
+
+    assert cli.main(["--probe-ollama", "--config", str(ollama_cfg_path)]) == 1
+    assert events()[-1]["event"] == "probe_error"
+
+
+def test_probe_ollama_template_error_returns_1(monkeypatch, ollama_cfg_path, events) -> None:
+    _patch_ollama(monkeypatch, error=OllamaTemplateError("cannot read template"))
+
+    assert cli.main(["--probe-ollama", "--config", str(ollama_cfg_path)]) == 1
+    assert events()[-1]["event"] == "probe_error"
+
+
+def test_probe_ollama_response_error_returns_1(monkeypatch, ollama_cfg_path, events) -> None:
+    _patch_ollama(monkeypatch, error=OllamaResponseError("no usable response"))
+
+    assert cli.main(["--probe-ollama", "--config", str(ollama_cfg_path)]) == 1
+    assert events()[-1]["event"] == "probe_error"

@@ -68,3 +68,63 @@ def test_invalid_log_path_type_raises(tmp_path: Path) -> None:
     cfg = _write(tmp_path / "config.yaml", "log:\n  path: 42\n")
     with pytest.raises(ConfigError):
         load_config(cfg)
+
+
+def test_ollama_section_parses(tmp_path: Path) -> None:
+    cfg = _write(
+        tmp_path / "config.yaml",
+        "ollama:\n  endpoint: http://127.0.0.1:11434\n"
+        "  model: llama3\n  temperature: 0.5\n  timeout: 30.0\n"
+        "  prompt_template: /tmp/system.md\n",
+    )
+    config = load_config(cfg)
+    assert config.ollama.endpoint == "http://127.0.0.1:11434"
+    assert config.ollama.model == "llama3"
+    assert config.ollama.temperature == 0.5
+    assert config.ollama.timeout == 30.0
+    assert config.ollama.prompt_template == Path("/tmp/system.md")
+
+
+def test_ollama_defaults_when_section_omitted(tmp_path: Path) -> None:
+    cfg = _write(tmp_path / "config.yaml", "log:\n  path: logs/run.jsonl\n")
+    config = load_config(cfg)
+    assert config.ollama.endpoint == "http://localhost:11434"
+    assert config.ollama.model == "qwen2.5:14b"
+    assert config.ollama.temperature == 0.2
+    assert config.ollama.timeout == 120.0
+
+
+def test_ollama_section_not_mapping_raises(tmp_path: Path) -> None:
+    cfg = _write(tmp_path / "config.yaml", "ollama: [1, 2, 3]\n")
+    with pytest.raises(ConfigError):
+        load_config(cfg)
+
+
+def test_ollama_invalid_temperature_type_raises(tmp_path: Path) -> None:
+    cfg = _write(tmp_path / "config.yaml", "ollama:\n  temperature: hot\n")
+    with pytest.raises(ConfigError):
+        load_config(cfg)
+
+
+def test_ollama_invalid_timeout_type_raises(tmp_path: Path) -> None:
+    cfg = _write(tmp_path / "config.yaml", "ollama:\n  timeout: 'soon'\n")
+    with pytest.raises(ConfigError):
+        load_config(cfg)
+
+
+def test_ollama_invalid_prompt_template_type_raises(tmp_path: Path) -> None:
+    cfg = _write(tmp_path / "config.yaml", "ollama:\n  prompt_template: 42\n")
+    with pytest.raises(ConfigError):
+        load_config(cfg)
+
+
+def test_ollama_invalid_endpoint_type_raises(tmp_path: Path) -> None:
+    cfg = _write(tmp_path / "config.yaml", "ollama:\n  endpoint: 8080\n")
+    with pytest.raises(ConfigError):
+        load_config(cfg)
+
+
+def test_ollama_invalid_model_type_raises(tmp_path: Path) -> None:
+    cfg = _write(tmp_path / "config.yaml", "ollama:\n  model: 42\n")
+    with pytest.raises(ConfigError):
+        load_config(cfg)
