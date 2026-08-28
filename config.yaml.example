@@ -1,0 +1,16 @@
+# DaVinci Resolve automation orchestrator — configuration.
+# Copy to config.yaml and adjust to your environment.
+
+resolve:
+  # Absolute path to the directory containing the DaVinciResolveScript module
+  # (e.g. /opt/resolve/Developer/Scripting/Modules). Leave null to rely on the
+  # standard import path and platform-default directories.
+  script_path: null
+  # Log the detected Resolve version (Studio vs free) on connect.
+  detect_version: true
+
+log:
+  # Path to the JSON-lines audit log file.
+  path: logs/run.jsonl
+  # Default log level for records written to the audit log.
+  level: info
