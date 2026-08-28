@@ -61,6 +61,18 @@ class TranscriptionConfig:
 
 
 @dataclass(frozen=True)
+class TemplatesConfig:
+    """Motion-graphics template library location.
+
+    ``None`` values mean "use the package's bundled ``templates/`` folder and
+    its ``manifest.json``" (loaded via importlib.resources as package data).
+    """
+
+    templates_dir: Optional[Path] = None
+    manifest: Optional[Path] = None
+
+
+@dataclass(frozen=True)
 class Config:
     """Top-level validated configuration."""
 
@@ -69,6 +81,7 @@ class Config:
     ollama: OllamaConfig = field(default_factory=OllamaConfig)
     pipeline: PipelineConfig = field(default_factory=PipelineConfig)
     transcription: TranscriptionConfig = field(default_factory=TranscriptionConfig)
+    templates: TemplatesConfig = field(default_factory=TemplatesConfig)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Config":
@@ -81,6 +94,7 @@ class Config:
         ollama_data = data.get("ollama", {})
         pipeline_data = data.get("pipeline", {})
         transcription_data = data.get("transcription", {})
+        templates_data = data.get("templates", {})
         if not isinstance(resolve_data, dict) or not isinstance(log_data, dict):
             raise ConfigError("'resolve' and 'log' sections must be mappings")
         if not isinstance(ollama_data, dict):
@@ -89,6 +103,8 @@ class Config:
             raise ConfigError("'pipeline' section must be a mapping")
         if not isinstance(transcription_data, dict):
             raise ConfigError("'transcription' section must be a mapping")
+        if not isinstance(templates_data, dict):
+            raise ConfigError("'templates' section must be a mapping")
 
         return cls(
             resolve=_parse_resolve(resolve_data),
@@ -96,6 +112,7 @@ class Config:
             ollama=_parse_ollama(ollama_data),
             pipeline=_parse_pipeline(pipeline_data),
             transcription=_parse_transcription(transcription_data),
+            templates=_parse_templates(templates_data),
         )
 
 
@@ -165,6 +182,21 @@ def _parse_transcription(data: Dict[str, Any]) -> TranscriptionConfig:
     if srt_path is not None and not isinstance(srt_path, str):
         raise ConfigError("'transcription.srt_path' must be a string or null")
     return TranscriptionConfig(srt_path=Path(srt_path) if srt_path else None)
+
+
+def _parse_templates(data: Dict[str, Any]) -> TemplatesConfig:
+    templates_dir = data.get("templates_dir")
+    if templates_dir is not None and not isinstance(templates_dir, str):
+        raise ConfigError("'templates.templates_dir' must be a string or null")
+
+    manifest = data.get("manifest")
+    if manifest is not None and not isinstance(manifest, str):
+        raise ConfigError("'templates.manifest' must be a string or null")
+
+    return TemplatesConfig(
+        templates_dir=Path(templates_dir) if templates_dir else None,
+        manifest=Path(manifest) if manifest else None,
+    )
 
 
 def load_config(path: Path | str) -> Config:

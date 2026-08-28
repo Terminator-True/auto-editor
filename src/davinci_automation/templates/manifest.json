@@ -1,0 +1,5 @@
+[
+  {"id": "lower_third", "name": "Lower Third", "file": "lower_third.json"},
+  {"id": "title", "name": "Title", "file": "title.json"},
+  {"id": "callout", "name": "Callout", "file": "callout.json"}
+]

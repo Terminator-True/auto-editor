@@ -178,3 +178,41 @@ def test_transcription_section_not_mapping_raises(tmp_path: Path) -> None:
     cfg = _write(tmp_path / "config.yaml", "transcription: [1, 2, 3]\n")
     with pytest.raises(ConfigError):
         load_config(cfg)
+
+
+# ------------------------------------------------------------- templates
+
+def test_templates_section_parses(tmp_path: Path) -> None:
+    cfg = _write(
+        tmp_path / "config.yaml",
+        "templates:\n  templates_dir: /tmp/tpls\n  manifest: /tmp/manifest.json\n"
+        "log:\n  path: logs/run.jsonl\n",
+    )
+    config = load_config(cfg)
+    assert config.templates.templates_dir == Path("/tmp/tpls")
+    assert config.templates.manifest == Path("/tmp/manifest.json")
+
+
+def test_templates_defaults_to_none_when_omitted(tmp_path: Path) -> None:
+    cfg = _write(tmp_path / "config.yaml", "log:\n  path: logs/run.jsonl\n")
+    config = load_config(cfg)
+    assert config.templates.templates_dir is None
+    assert config.templates.manifest is None
+
+
+def test_templates_invalid_dir_type_raises(tmp_path: Path) -> None:
+    cfg = _write(tmp_path / "config.yaml", "templates:\n  templates_dir: 42\n")
+    with pytest.raises(ConfigError):
+        load_config(cfg)
+
+
+def test_templates_invalid_manifest_type_raises(tmp_path: Path) -> None:
+    cfg = _write(tmp_path / "config.yaml", "templates:\n  manifest: 42\n")
+    with pytest.raises(ConfigError):
+        load_config(cfg)
+
+
+def test_templates_section_not_mapping_raises(tmp_path: Path) -> None:
+    cfg = _write(tmp_path / "config.yaml", "templates: [1, 2, 3]\n")
+    with pytest.raises(ConfigError):
+        load_config(cfg)

@@ -22,7 +22,7 @@ dev = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-davinci_automation = ["schemas/*.json"]
+davinci_automation = ["schemas/*.json", "templates/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
