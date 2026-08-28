@@ -1,1 +1,15 @@
 /.venv
+
+# DaVinci automation orchestrator
+/config.yaml
+/logs/
+/.coverage
+/htmlcov/
+/coverage.xml
+
+# Python caches and build artifacts
+__pycache__/
+*.pyc
+*.egg-info/
+.pytest_cache/
+.venv/

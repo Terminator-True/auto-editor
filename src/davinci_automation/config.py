@@ -1,0 +1,102 @@
+"""Externalized configuration loading and validation.
+
+Loads a YAML config file into typed dataclasses. The orchestrator reads all
+runtime values from here — no hardcoded runtime literals (per spec).
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Dict, Optional
+
+import yaml
+
+
+class ConfigError(Exception):
+    """Raised when the config file is missing, invalid, or malformed."""
+
+
+@dataclass(frozen=True)
+class ResolveConfig:
+    """Resolve connection settings."""
+
+    script_path: Optional[str] = None
+    detect_version: bool = True
+
+
+@dataclass(frozen=True)
+class LogConfig:
+    """Audit logging settings."""
+
+    path: Path = Path("logs/run.jsonl")
+    level: str = "info"
+
+
+@dataclass(frozen=True)
+class Config:
+    """Top-level validated configuration."""
+
+    resolve: ResolveConfig = field(default_factory=ResolveConfig)
+    log: LogConfig = field(default_factory=LogConfig)
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Config":
+        """Build a Config from a parsed YAML mapping, validating each field."""
+        if not isinstance(data, dict):
+            raise ConfigError("config root must be a mapping")
+
+        resolve_data = data.get("resolve", {})
+        log_data = data.get("log", {})
+        if not isinstance(resolve_data, dict) or not isinstance(log_data, dict):
+            raise ConfigError("'resolve' and 'log' sections must be mappings")
+
+        return cls(
+            resolve=_parse_resolve(resolve_data),
+            log=_parse_log(log_data),
+        )
+
+
+def _parse_resolve(data: Dict[str, Any]) -> ResolveConfig:
+    script_path = data.get("script_path")
+    if script_path is not None and not isinstance(script_path, str):
+        raise ConfigError("'resolve.script_path' must be a string or null")
+
+    detect_version = data.get("detect_version", True)
+    if not isinstance(detect_version, bool):
+        raise ConfigError("'resolve.detect_version' must be a boolean")
+
+    return ResolveConfig(script_path=script_path, detect_version=detect_version)
+
+
+def _parse_log(data: Dict[str, Any]) -> LogConfig:
+    path = data.get("path", "logs/run.jsonl")
+    if not isinstance(path, str) or not path:
+        raise ConfigError("'log.path' must be a non-empty string")
+
+    level = data.get("level", "info")
+    if not isinstance(level, str) or not level:
+        raise ConfigError("'log.level' must be a non-empty string")
+
+    return LogConfig(path=Path(path), level=level)
+
+
+def load_config(path: Path | str) -> Config:
+    """Load and validate a YAML config file.
+
+    Raises ``ConfigError`` when the file is missing, unparsable, or invalid.
+    """
+    config_path = Path(path)
+    if not config_path.is_file():
+        raise ConfigError(f"config file not found: {config_path}")
+
+    try:
+        with config_path.open("r", encoding="utf-8") as fh:
+            data = yaml.safe_load(fh)
+    except yaml.YAMLError as exc:
+        raise ConfigError(f"invalid YAML in {config_path}: {exc}") from exc
+
+    if data is None:
+        raise ConfigError(f"config file is empty: {config_path}")
+
+    return Config.from_dict(data)
