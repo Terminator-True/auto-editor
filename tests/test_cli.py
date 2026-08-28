@@ -378,6 +378,53 @@ def test_e2e_llm_failure_returns_1(monkeypatch, cfg_path, events) -> None:
     assert events()[-1]["event"] == "error"
 
 
+def test_e2e_passes_templates_config_into_orchestrator(monkeypatch, cfg_path) -> None:
+    # A custom templates folder with one template, referenced by config.
+    tpl_dir = Path(cfg_path.parent) / "templates"
+    tpl_dir.mkdir()
+    (tpl_dir / "banner.json").write_text(
+        json.dumps(
+            {
+                "id": "banner",
+                "name": "Banner",
+                "params": {"texto": {"type": "string", "default": ""}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (tpl_dir / "manifest.json").write_text(
+        json.dumps([{"id": "banner", "name": "Banner", "file": "banner.json"}]),
+        encoding="utf-8",
+    )
+    cfg = cfg_path
+    cfg.write_text(
+        f"resolve:\n  script_path: null\n  detect_version: false\n"
+        f"log:\n  path: {cfg.parent}/run.jsonl\n  level: info\n"
+        f"templates:\n  templates_dir: {tpl_dir}\n",
+        encoding="utf-8",
+    )
+
+    captured = {}
+
+    class _RecordingOrchestrator:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+        def run(self, logger):
+            return 0
+
+    monkeypatch.setattr(cli, "Orchestrator", _RecordingOrchestrator)
+    _patch_client(monkeypatch, _make_e2e_resolve())
+    _patch_e2e_ollama(monkeypatch, result=_valid_result())
+
+    assert cli.main(["--e2e", "--srt", str(FIXTURE_SRT), "--config", str(cfg)]) == 0
+
+    library = captured["library"]
+    banner = library.resolve_template("banner")
+    assert banner is not None
+    assert banner.params["texto"].type == "string"
+
+
 def test_e2e_out_of_range_rejected_logged(monkeypatch, cfg_path, events) -> None:
     resolve = _make_e2e_resolve()
     _patch_client(monkeypatch, resolve)

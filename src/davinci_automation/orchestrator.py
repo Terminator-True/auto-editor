@@ -58,7 +58,19 @@ class Orchestrator:
         srt_source: Callable[[], str],
         timeline_duration: Optional[Callable[[object], int]] = None,
         mode: str = DEFAULT_MODE,
+        library=None,
+        applier=None,
     ) -> None:
+        # Imported lazily to avoid a circular import: motion_graphics reuses
+        # validate_range from this module at module load time.
+        from davinci_automation.motion_graphics import MotionGraphicApplier
+        from davinci_automation.template_library import TemplateLibrary
+
+        if library is None:
+            library = TemplateLibrary.load()
+        if applier is None:
+            applier = MotionGraphicApplier(library)
+
         self.resolve_client = resolve_client
         self.transport = transport  # LLM seam: generate(prompt, system) -> raw text
         self.srt_source = srt_source
@@ -66,6 +78,8 @@ class Orchestrator:
             lambda timeline: timeline.GetEndFrame()
         )
         self.mode = mode
+        self.library = library
+        self.applier = applier
 
     def run(self, logger: JsonlLogger) -> int:
         """Run the pipeline; return 0 on success, 1 on any logged stage error."""
@@ -123,6 +137,11 @@ class Orchestrator:
     def _validate(self, logger: JsonlLogger, output, duration: int) -> List:
         valid = []
         for action in output.acciones:
+            if action.tipo == "motion_graphic":
+                # Non-destructive: the applier logs the decision/rejection and
+                # never mutates the timeline; it is not added to the corte list.
+                self.applier.appraise(action, duration, logger)
+                continue
             if action.tipo != "corte":
                 continue
             start = action.rango.inicio.total_frames
