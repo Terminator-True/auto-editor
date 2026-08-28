@@ -19,6 +19,15 @@ from davinci_automation.llm_schema import (
 from davinci_automation.orchestrator import Orchestrator, OrchestratorError
 from davinci_automation.srt_reader import SrtError
 from davinci_automation.apply import AutoApplier, MarkerApplier
+from davinci_automation.motion_graphics import InsertionDecision, MotionGraphicApplier
+from davinci_automation.template_library import (
+    TemplateError,
+    ManifestError,
+    DefinitionError,
+    TemplateLibrary,
+    Template,
+    ParamSpec,
+)
 
 __version__ = "0.1.0"
 
@@ -37,4 +46,12 @@ __all__ = [
     "SrtError",
     "MarkerApplier",
     "AutoApplier",
+    "InsertionDecision",
+    "MotionGraphicApplier",
+    "TemplateLibrary",
+    "Template",
+    "ParamSpec",
+    "TemplateError",
+    "ManifestError",
+    "DefinitionError",
 ]

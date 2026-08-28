@@ -25,6 +25,7 @@ from davinci_automation.resolve_client import (
     ResolveScriptNotFound,
 )
 from davinci_automation.srt_reader import SrtError
+from davinci_automation.template_library import TemplateLibrary
 
 DEFAULT_CONFIG_PATH = Path("config.yaml")
 DEFAULT_LOG_PATH = Path("logs/run.jsonl")
@@ -175,6 +176,10 @@ def _run_e2e(config, logger: JsonlLogger, args) -> int:
         transport=_OllamaSeamAdapter(ollama),
         srt_source=lambda: srt_text,
         mode=mode,
+        library=TemplateLibrary.load(
+            dir=config.templates.templates_dir,
+            manifest=config.templates.manifest,
+        ),
     )
     return orchestrator.run(logger)
 

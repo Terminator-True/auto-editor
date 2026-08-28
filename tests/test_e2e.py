@@ -224,7 +224,7 @@ def test_e2e_srt_without_usable_cues_returns_1(tmp_path: Path) -> None:
     assert _events(tmp_path)[-1] == "error"
 
 
-def test_e2e_non_corte_action_is_skipped(tmp_path: Path) -> None:
+def test_e2e_motion_graphic_logged_decision_no_marker(tmp_path: Path) -> None:
     resolve = _make_resolve()
     client = _FakeResolveClient(resolve)
     body = json.dumps(
@@ -232,7 +232,7 @@ def test_e2e_non_corte_action_is_skipped(tmp_path: Path) -> None:
             "segmento": {"inicio": "00:00:01:00", "fin": "00:00:14:00"},
             "acciones": [
                 {"tipo": "motion_graphic", "timestamp": "00:00:06:00",
-                 "template": "lower-third", "parametros": {"text": "Hi"},
+                 "template": "lower_third", "parametros": {"texto": "Hi"},
                  "duracion_frames": 48},
             ],
         }
@@ -244,6 +244,36 @@ def test_e2e_non_corte_action_is_skipped(tmp_path: Path) -> None:
         client, transport, srt_source=lambda: FIXTURE_SRT.read_text(), mode="marker"
     )
 
-    assert orchestrator.run(logger) == 0  # non-corte action produces no marker
+    assert orchestrator.run(logger) == 0
+    timeline = resolve.GetProjectManager().GetCurrentProject().GetCurrentTimeline()
+    # Motion graphics are non-destructive: no marker is ever added.
+    assert timeline.markers == []
+    # ...but the action is no longer silently skipped: a decision is logged.
+    assert "intended_motion_graphic" in _events(tmp_path)
+
+
+def test_e2e_motion_graphic_rejected_without_crash(tmp_path: Path) -> None:
+    resolve = _make_resolve()
+    client = _FakeResolveClient(resolve)
+    body = json.dumps(
+        {
+            "segmento": {"inicio": "00:00:01:00", "fin": "00:00:14:00"},
+            "acciones": [
+                {"tipo": "motion_graphic", "timestamp": "00:00:06:00",
+                 "template": "lower_third", "parametros": {"duracion": "sixty"},
+                 "duracion_frames": 48},
+            ],
+        }
+    )
+    transport = FakeLLMTransport(body=body)
+    logger = JsonlLogger(tmp_path / "run.jsonl")
+
+    orchestrator = Orchestrator(
+        client, transport, srt_source=lambda: FIXTURE_SRT.read_text(), mode="marker"
+    )
+
+    # A bad param yields a typed rejection, not a traceback.
+    assert orchestrator.run(logger) == 0
     timeline = resolve.GetProjectManager().GetCurrentProject().GetCurrentTimeline()
     assert timeline.markers == []
+    assert "param_rejected" in _events(tmp_path)
