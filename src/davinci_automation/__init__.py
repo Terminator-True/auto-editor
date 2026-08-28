@@ -16,6 +16,9 @@ from davinci_automation.llm_schema import (
     TimecodeError,
     parse_llm_output,
 )
+from davinci_automation.orchestrator import Orchestrator, OrchestratorError
+from davinci_automation.srt_reader import SrtError
+from davinci_automation.apply import AutoApplier, MarkerApplier
 
 __version__ = "0.1.0"
 
@@ -29,4 +32,9 @@ __all__ = [
     "JsonParseError",
     "SchemaValidationError",
     "TimecodeError",
+    "Orchestrator",
+    "OrchestratorError",
+    "SrtError",
+    "MarkerApplier",
+    "AutoApplier",
 ]
