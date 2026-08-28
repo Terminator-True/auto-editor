@@ -17,6 +17,7 @@ from __future__ import annotations
 from typing import Callable, List, Optional
 
 from davinci_automation.jsonl_logger import JsonlLogger
+from davinci_automation.srt_reader import SrtError, parse_srt
 from davinci_automation.llm_schema import LlmOutputError, parse_llm_output
 from davinci_automation.ollama_client import (
     DEFAULT_PROMPT_TEMPLATE,
@@ -36,19 +37,6 @@ class OrchestratorError(Exception):
 
 class TranscriptionError(OrchestratorError):
     """Raised when the transcription source is empty or has no usable cues."""
-
-
-class _SrtCue:
-    """Minimal inline SRT cue exposing a ``.text`` attribute (Slice 1).
-
-    Replaced by ``srt_reader.SrtCue`` in Slice 2, which additionally carries
-    ``index``, ``start``, and ``end``.
-    """
-
-    __slots__ = ("text",)
-
-    def __init__(self, text: str) -> None:
-        self.text = text
 
 
 def validate_range(start: int, end: int, duration: int) -> bool:
@@ -91,7 +79,7 @@ class Orchestrator:
             valid = self._validate(logger, output, duration)
             self._apply(logger, timeline, valid)
             return 0
-        except (OllamaError, LlmOutputError, OrchestratorError) as exc:
+        except (OllamaError, LlmOutputError, OrchestratorError, SrtError) as exc:
             logger.write("error", "error", message=str(exc))
             return 1
 
@@ -115,38 +103,12 @@ class Orchestrator:
         return timeline
 
     def _transcribe(self, logger: JsonlLogger) -> str:
-        cues = self._parse_srt_cues(self.srt_source())
+        cues = parse_srt(self.srt_source())
         usable = [cue.text for cue in cues if cue.text.strip()]
         if not usable:
             raise TranscriptionError("SRT transcription has no usable cues")
         logger.write("transcription", "info", cues=len(usable))
         return " ".join(usable)
-
-    def _parse_srt_cues(self, text: str) -> List:
-        """Parse a minimal SRT into cue objects exposing ``.text`` (Slice 1 inline).
-
-        Handles a typical SRT block: an optional leading sequence number, a
-        ``HH:MM:SS,mmm --> HH:MM:SS,mmm`` timecode line, one or more text lines,
-        separated by blank lines. A cue that carries timing but no text yields an
-        empty ``.text``. Returns ``[]`` for empty/whitespace-only input.
-        """
-        if not text or not text.strip():
-            return []
-
-        cues: List = []
-        for block in text.strip().split("\n\n"):
-            lines = [line.strip() for line in block.splitlines() if line.strip()]
-            if not lines:
-                continue
-            # Drop an optional leading sequence number, then the timecode line;
-            # the remaining lines are the cue text.
-            if lines[0].isdigit():
-                lines = lines[1:]
-            if not lines:
-                continue
-            text_lines = lines[1:]
-            cues.append(_SrtCue("\n".join(text_lines)))
-        return cues
 
     def _generate(self, logger: JsonlLogger, prompt: str) -> str:
         raw = self.transport.generate(prompt, system=_SYSTEM_PROMPT)
