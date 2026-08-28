@@ -38,3 +38,11 @@ transcription:
   # Path to the .srt transcription source used by --e2e when --srt is omitted.
   # Leave null to require an explicit --srt flag.
   srt_path: null
+
+templates:
+  # Motion-graphics template library location. Both fields are optional; when
+  # null, the package's bundled templates/ folder and manifest.json (package
+  # data) are used. Point these at a custom folder to add/edit templates with
+  # no code change (§3.4).
+  templates_dir: null
+  manifest: null

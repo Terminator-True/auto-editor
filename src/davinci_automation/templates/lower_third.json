@@ -1,0 +1,10 @@
+{
+  "id": "lower_third",
+  "name": "Lower Third",
+  "params": {
+    "texto": {"type": "string", "default": ""},
+    "color": {"type": "string", "default": "white"},
+    "duracion": {"type": "int", "default": 60, "min": 1, "max": 240},
+    "posicion": {"type": "string", "default": "bottom"}
+  }
+}
