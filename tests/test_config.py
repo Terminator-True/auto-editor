@@ -128,3 +128,53 @@ def test_ollama_invalid_model_type_raises(tmp_path: Path) -> None:
     cfg = _write(tmp_path / "config.yaml", "ollama:\n  model: 42\n")
     with pytest.raises(ConfigError):
         load_config(cfg)
+
+
+# ------------------------------------------------------------- pipeline / transcription
+
+def test_pipeline_section_parses(tmp_path: Path) -> None:
+    cfg = _write(tmp_path / "config.yaml", "pipeline:\n  mode: auto\nlog:\n  path: logs/run.jsonl\n")
+    config = load_config(cfg)
+    assert config.pipeline.mode == "auto"
+
+
+def test_pipeline_defaults_to_marker_when_omitted(tmp_path: Path) -> None:
+    cfg = _write(tmp_path / "config.yaml", "log:\n  path: logs/run.jsonl\n")
+    config = load_config(cfg)
+    assert config.pipeline.mode == "marker"
+
+
+def test_pipeline_invalid_mode_raises(tmp_path: Path) -> None:
+    cfg = _write(tmp_path / "config.yaml", "pipeline:\n  mode: bogus\n")
+    with pytest.raises(ConfigError):
+        load_config(cfg)
+
+
+def test_pipeline_section_not_mapping_raises(tmp_path: Path) -> None:
+    cfg = _write(tmp_path / "config.yaml", "pipeline: [1, 2, 3]\n")
+    with pytest.raises(ConfigError):
+        load_config(cfg)
+
+
+def test_transcription_section_parses(tmp_path: Path) -> None:
+    cfg = _write(tmp_path / "config.yaml", "transcription:\n  srt_path: /tmp/notes.srt\n")
+    config = load_config(cfg)
+    assert config.transcription.srt_path == Path("/tmp/notes.srt")
+
+
+def test_transcription_defaults_to_none_when_omitted(tmp_path: Path) -> None:
+    cfg = _write(tmp_path / "config.yaml", "log:\n  path: logs/run.jsonl\n")
+    config = load_config(cfg)
+    assert config.transcription.srt_path is None
+
+
+def test_transcription_invalid_srt_path_type_raises(tmp_path: Path) -> None:
+    cfg = _write(tmp_path / "config.yaml", "transcription:\n  srt_path: 42\n")
+    with pytest.raises(ConfigError):
+        load_config(cfg)
+
+
+def test_transcription_section_not_mapping_raises(tmp_path: Path) -> None:
+    cfg = _write(tmp_path / "config.yaml", "transcription: [1, 2, 3]\n")
+    with pytest.raises(ConfigError):
+        load_config(cfg)
